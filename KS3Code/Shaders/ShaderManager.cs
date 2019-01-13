@@ -13,7 +13,7 @@ namespace KS3P.Shaders
         /// The collection of all shaders
         /// </summary>
         static Dictionary<string, Shader> shaderDictionary = new Dictionary<string, Shader>();
-
+        public static Dictionary<string, ComputeShader> ComputerShaderDictionary = new Dictionary<string, ComputeShader>();
 
         public static Shader GetShader(string shaderName)
         {
@@ -61,6 +61,12 @@ namespace KS3P.Shaders
                 {
                     Debug.Log("[KSP_PostProcessing_ShaderLoader]: Adding shader [" + shader.name + "].");
                     shaderDictionary.Add(shader.name, shader);
+                }
+                ComputeShader[] computeShaders = bundle.LoadAllAssets<ComputeShader>();
+                foreach (ComputeShader shader in computeShaders)
+                {
+                    Debug.Log("[KSP_PostProcessing_ShaderLoader]: Adding computeShader [" + shader.name + "].");
+                    ComputerShaderDictionary.Add(shader.name, shader);
                 }
                 bundle.Unload(false);
             }

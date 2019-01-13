@@ -45,12 +45,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Main.cs" />
+    <Compile Include="Core\Main.cs" />
+    <Compile Include="Core\SaveProfile.cs" />
+    <Compile Include="Core\UI.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SaveProfile.cs" />
-    <Compile Include="ShaderManager.cs" />
-    <Compile Include="UI.cs" />
-    <Compile Include="Unity.cs" />
+    <Compile Include="Shaders\ShaderManager.cs" />
+    <Compile Include="Shaders\Unity.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

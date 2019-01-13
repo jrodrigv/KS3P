@@ -1424,7 +1424,8 @@ namespace KS3P.Shaders
 
             // Setup compute
             if (m_EyeCompute == null)
-                m_EyeCompute = Resources.Load<ComputeShader>("Shaders/EyeHistogram");
+                m_EyeCompute = ShaderLoader.ComputerShaderDictionary["EyeHistogram"];
+
 
             var material = context.materialFactory.Get("Hidden/Post FX/Eye Adaptation");
             material.shaderKeywords = null;
