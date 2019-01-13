@@ -32,7 +32,7 @@ Shader "Hidden/Post FX/Bloom"
 
     CGINCLUDE
 
-        #pragma target 3.0
+        #pragma target 5.0
         #include "UnityCG.cginc"
         #include "Bloom.cginc"
         #include "Common.cginc"

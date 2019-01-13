@@ -6,7 +6,7 @@ Shader "Hidden/Post FX/Depth Of Field"
     }
 
     CGINCLUDE
-        #pragma exclude_renderers d3d11_9x
+        #pragma target 5.0
     ENDCG
 
     // SubShader with SM 5.0 support
@@ -53,7 +53,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "Bokeh Filter (small)"
             CGPROGRAM
-                #pragma target 3.0
+                 #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragBlur
                 #define KERNEL_SMALL
@@ -65,7 +65,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "Bokeh Filter (medium)"
             CGPROGRAM
-                #pragma target 3.0
+                #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragBlur
                 #define KERNEL_MEDIUM
@@ -77,7 +77,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "Bokeh Filter (large)"
             CGPROGRAM
-                #pragma target 3.0
+                 #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragBlur
                 #define KERNEL_LARGE
@@ -89,7 +89,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "Bokeh Filter (very large)"
             CGPROGRAM
-                #pragma target 3.0
+                #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragBlur
                 #define KERNEL_VERYLARGE
@@ -101,7 +101,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "Postfilter"
             CGPROGRAM
-                #pragma target 3.0
+                #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragPostBlur
                 #include "DepthOfField.cginc"
@@ -118,7 +118,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "CoC Calculation"
             CGPROGRAM
-                #pragma target 3.0
+                #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragCoC
                 #include "DepthOfField.cginc"
@@ -129,7 +129,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "CoC Temporal Filter"
             CGPROGRAM
-                #pragma target 3.0
+                 #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragTempFilter
                 #include "DepthOfField.cginc"
@@ -140,7 +140,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "Downsample and Prefilter"
             CGPROGRAM
-                #pragma target 3.0
+                 #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragPrefilter
                 #pragma multi_compile __ UNITY_COLORSPACE_GAMMA
@@ -152,7 +152,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "Bokeh Filter (small)"
             CGPROGRAM
-                #pragma target 3.0
+                 #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragBlur
                 #define KERNEL_SMALL
@@ -164,7 +164,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "Bokeh Filter (medium)"
             CGPROGRAM
-                #pragma target 3.0
+                 #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragBlur
                 #define KERNEL_MEDIUM
@@ -176,7 +176,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "Bokeh Filter (large)"
             CGPROGRAM
-                #pragma target 3.0
+                 #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragBlur
                 #define KERNEL_LARGE
@@ -188,7 +188,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "Bokeh Filter (very large)"
             CGPROGRAM
-                #pragma target 3.0
+                 #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragBlur
                 #define KERNEL_VERYLARGE
@@ -200,7 +200,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "Postfilter"
             CGPROGRAM
-                #pragma target 3.0
+                 #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragPostBlur
                 #include "DepthOfField.cginc"

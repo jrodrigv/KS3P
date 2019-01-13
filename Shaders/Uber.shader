@@ -16,7 +16,7 @@ Shader "Hidden/Post FX/Uber Shader"
 
     CGINCLUDE
 
-        #pragma target 3.0
+         #pragma target 5.0
 
         #pragma multi_compile __ UNITY_COLORSPACE_GAMMA
         #pragma multi_compile __ CHROMATIC_ABERRATION

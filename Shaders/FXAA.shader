@@ -32,7 +32,7 @@ Shader "Hidden/Post FX/FXAA"
 
         #define FXAA_GREEN_AS_LUMA 1
 
-        #pragma target 3.0
+         #pragma target 5.0
         #include "FXAA3.cginc"
 
         float3 _QualitySettings;

@@ -5,7 +5,7 @@ Shader "Hidden/Post FX/Builtin Debug Views"
         #include "UnityCG.cginc"
         #include "Common.cginc"
 
-        #pragma exclude_renderers d3d11_9x
+        #pragma target 5.0
 
         sampler2D_float _CameraDepthTexture;
         sampler2D_float _CameraDepthNormalsTexture;

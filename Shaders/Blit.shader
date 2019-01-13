@@ -6,10 +6,10 @@ Shader "Hidden/Post FX/Blit"
     }
 
     CGINCLUDE
-
+      
         #include "UnityCG.cginc"
         #include "Common.cginc"
-
+        #pragma target 5.0
         struct Varyings
         {
             float2 uv : TEXCOORD0;

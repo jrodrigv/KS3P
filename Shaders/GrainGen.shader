@@ -2,8 +2,8 @@ Shader "Hidden/Post FX/Grain Generator"
 {
     CGINCLUDE
         
-        #pragma exclude_renderers d3d11_9x
-        #pragma target 3.0
+
+        #pragma target 5.0
         #include "UnityCG.cginc"
         #include "Common.cginc"
 

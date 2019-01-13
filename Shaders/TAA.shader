@@ -52,7 +52,7 @@ Shader "Hidden/Post FX/Temporal Anti-aliasing"
         Pass
         {
             CGPROGRAM
-                #pragma target 3.0
+                 #pragma target 5.0
                 #pragma vertex VertSolver
                 #pragma fragment FragSolver
                 #include "TAA.cginc"
@@ -63,7 +63,7 @@ Shader "Hidden/Post FX/Temporal Anti-aliasing"
         Pass
         {
             CGPROGRAM
-                #pragma target 3.0
+                 #pragma target 5.0
                 #pragma vertex VertSolver
                 #pragma fragment FragSolver
                 #define TAA_DILATE_MOTION_VECTOR_SAMPLE 0
@@ -75,7 +75,7 @@ Shader "Hidden/Post FX/Temporal Anti-aliasing"
         Pass
         {
             CGPROGRAM
-                #pragma target 3.0
+                #pragma target 5.0
                 #pragma vertex VertDefault
                 #pragma fragment FragAlphaClear
                 #include "TAA.cginc"

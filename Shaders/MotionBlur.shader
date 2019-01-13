@@ -2,7 +2,7 @@ Shader "Hidden/Post FX/Motion Blur"
 {
     CGINCLUDE
 
-        #pragma target 3.0
+         #pragma target 5.0
 
     ENDCG
 
