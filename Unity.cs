@@ -4,10 +4,8 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityObject = UnityEngine.Object;
 
-
-//This namespace holds all the code of the Unity Post-Processing behaviour asset bundle.
 //Credit for all of the below code goes to Unity Technologies (with minor edits made by The White Guardian to make everything work in this new configuration)
-namespace KS3P.Shaders
+namespace KSP_PostProcessing
 {
     #region Runtime
 
@@ -306,7 +304,7 @@ namespace KS3P.Shaders
 
             // Prefilter pass
             var prefiltered = context.renderTextureFactory.Get(tw, th, 0, rtFormat);
-            Graphics.Blit(source, prefiltered, material, 0);
+            KS3PUtil.Blit(source, prefiltered, material, 0);
 
             // Construct a mip pyramid
             var last = prefiltered;
@@ -318,7 +316,7 @@ namespace KS3P.Shaders
                         );
 
                 int pass = (level == 0) ? 1 : 2;
-                Graphics.Blit(last, m_BlurBuffer1[level], material, pass);
+                KS3PUtil.Blit(last, m_BlurBuffer1[level], material, pass);
 
                 last = m_BlurBuffer1[level];
             }
@@ -333,7 +331,7 @@ namespace KS3P.Shaders
                         baseTex.width, baseTex.height, 0, rtFormat
                         );
 
-                Graphics.Blit(last, m_BlurBuffer2[level], material, 3);
+                KS3PUtil.Blit(last, m_BlurBuffer2[level], material, 3);
                 last = m_BlurBuffer2[level];
             }
 
@@ -1074,7 +1072,7 @@ namespace KS3P.Shaders
             lutMaterial.SetTexture(Uniforms._Curves, GetCurveTexture());
 
             // Generate the lut
-            Graphics.Blit(null, model.bakedLut, lutMaterial, 0);
+            KS3PUtil.Blit(null, model.bakedLut, lutMaterial, 0);
         }
 
         public override void Prepare(Material uberMaterial)
@@ -1216,7 +1214,7 @@ namespace KS3P.Shaders
 
             // CoC calculation pass
             var rtCoC = context.renderTextureFactory.Get(context.width, context.height, 0, cocFormat, RenderTextureReadWrite.Linear);
-            Graphics.Blit(null, rtCoC, material, 0);
+            KS3PUtil.Blit(null, rtCoC, material, 0);
 
             if (antialiasCoC)
             {
@@ -1227,7 +1225,7 @@ namespace KS3P.Shaders
                 material.SetVector(Uniforms._TaaParams, new Vector3(taaJitter.x, taaJitter.y, blend));
 
                 var rtFiltered = RenderTexture.GetTemporary(context.width, context.height, 0, cocFormat);
-                Graphics.Blit(m_CoCHistory, rtFiltered, material, 1);
+                KS3PUtil.Blit(m_CoCHistory, rtFiltered, material, 1);
 
                 context.renderTextureFactory.Release(rtCoC);
                 if (m_CoCHistory != null) RenderTexture.ReleaseTemporary(m_CoCHistory);
@@ -1238,14 +1236,14 @@ namespace KS3P.Shaders
             // Downsampling and prefiltering pass
             var rt1 = context.renderTextureFactory.Get(context.width / 2, context.height / 2, 0, colorFormat);
             material.SetTexture(Uniforms._CoCTex, rtCoC);
-            Graphics.Blit(source, rt1, material, 2);
+            KS3PUtil.Blit(source, rt1, material, 2);
 
             // Bokeh simulation pass
             var rt2 = context.renderTextureFactory.Get(context.width / 2, context.height / 2, 0, colorFormat);
-            Graphics.Blit(rt1, rt2, material, 3 + (int)settings.kernelSize);
+            KS3PUtil.Blit(rt1, rt2, material, 3 + (int)settings.kernelSize);
 
             // Postfilter pass
-            Graphics.Blit(rt2, rt1, material, 7);
+            KS3PUtil.Blit(rt2, rt1, material, 7);
 
             // Give the results to the uber shader.
             uberMaterial.SetVector(Uniforms._DepthOfFieldParams, new Vector3(s1, coeff, maxCoC));
@@ -1306,8 +1304,11 @@ namespace KS3P.Shaders
         {
             noiseTextures = new Texture2D[k_TextureCount];
 
+            GameDatabase database = GameDatabase.Instance;
+
             for (int i = 0; i < k_TextureCount; i++)
-                noiseTextures[i] = Resources.Load<Texture2D>("Bluenoise64/LDR_LLL1_" + i);
+                //noiseTextures[i] = Resources.Load<Texture2D>("Bluenoise64/LDR_LLL1_" + i);
+                noiseTextures[i] = database.GetTexture("KS3P/Textures/NoiseTextures/LDR_LLL1_" + i, false);
         }
 
         public override void Prepare(Material uberMaterial)
@@ -1441,7 +1442,7 @@ namespace KS3P.Shaders
             var scaleOffsetRes = GetHistogramScaleOffsetRes();
 
             var rt = context.renderTextureFactory.Get((int)scaleOffsetRes.z, (int)scaleOffsetRes.w, 0, source.format);
-            Graphics.Blit(source, rt);
+            KS3PUtil.Blit(source, rt);
 
             if (m_AutoExposurePool[0] == null || !m_AutoExposurePool[0].IsCreated())
                 m_AutoExposurePool[0] = new RenderTexture(1, 1, 0, RenderTextureFormat.RFloat);
@@ -1482,17 +1483,17 @@ namespace KS3P.Shaders
                 // We don't want eye adaptation when not in play mode because the GameView isn't
                 // animated, thus making it harder to tweak. Just use the final audo exposure value.
                 m_CurrentAutoExposure = m_AutoExposurePool[0];
-                Graphics.Blit(null, m_CurrentAutoExposure, material, (int)EyeAdaptationModel.EyeAdaptationType.Fixed);
+                KS3PUtil.Blit(null, m_CurrentAutoExposure, material, (int)EyeAdaptationModel.EyeAdaptationType.Fixed);
 
                 // Copy current exposure to the other pingpong target to avoid adapting from black
-                Graphics.Blit(m_AutoExposurePool[0], m_AutoExposurePool[1]);
+                KS3PUtil.Blit(m_AutoExposurePool[0], m_AutoExposurePool[1]);
             }
             else
             {
                 int pp = m_AutoExposurePingPing;
                 var src = m_AutoExposurePool[++pp % 2];
                 var dst = m_AutoExposurePool[++pp % 2];
-                Graphics.Blit(src, dst, material, (int)settings.adaptationType);
+                KS3PUtil.Blit(src, dst, material, (int)settings.adaptationType);
                 m_AutoExposurePingPing = ++pp % 2;
                 m_CurrentAutoExposure = dst;
             }
@@ -1510,7 +1511,7 @@ namespace KS3P.Shaders
                 }
 
                 material.SetFloat(Uniforms._DebugWidth, m_DebugHistogram.width);
-                Graphics.Blit(null, m_DebugHistogram, material, 2);
+                KS3PUtil.Blit(null, m_DebugHistogram, material, 2);
             }
 
             m_FirstFrame = false;
@@ -1644,7 +1645,7 @@ namespace KS3P.Shaders
                     )
                 );
 
-            Graphics.Blit(source, destination, material, 0);
+            KS3PUtil.Blit(source, destination, material, 0);
         }
     }
 
@@ -1716,7 +1717,7 @@ namespace KS3P.Shaders
             var grainMaterial = context.materialFactory.Get("Hidden/Post FX/Grain Generator");
             grainMaterial.SetFloat(Uniforms._Phase, time / 20f);
 
-            Graphics.Blit((Texture)null, m_GrainLookupRT, grainMaterial, settings.colored ? 1 : 0);
+            KS3PUtil.Blit((Texture)null, m_GrainLookupRT, grainMaterial, settings.colored ? 1 : 0);
 
             // Send everything to the uber shader
             uberMaterial.SetTexture(Uniforms._GrainTex, m_GrainLookupRT);
@@ -2256,7 +2257,7 @@ namespace KS3P.Shaders
                 m_HistoryTexture = RenderTexture.GetTemporary(source.width, source.height, 0, source.format);
                 m_HistoryTexture.name = "TAA History";
 
-                Graphics.Blit(source, m_HistoryTexture, material, 2);
+                KS3PUtil.Blit(source, m_HistoryTexture, material, 2);
             }
 
             const float kMotionAmplification = 100f * 60f;
@@ -4828,7 +4829,7 @@ namespace KS3P.Shaders
         {
             if (profile == null || m_Camera == null)
             {
-                Graphics.Blit(source, destination);
+                KS3PUtil.Blit(source, destination);
                 return;
             }
 
@@ -4899,7 +4900,7 @@ namespace KS3P.Shaders
                 if (uberActive)
                 {
                     var output = m_RenderTextureFactory.Get(src);
-                    Graphics.Blit(src, output, uberMaterial, 0);
+                    KS3PUtil.Blit(src, output, uberMaterial, 0);
                     src = output;
                 }
 
@@ -4915,17 +4916,17 @@ namespace KS3P.Shaders
                     if (!GraphicsUtils.isLinearColorSpace)
                         uberMaterial.EnableKeyword("UNITY_COLORSPACE_GAMMA");
 
-                    Graphics.Blit(src, dst, uberMaterial, 0);
+                    KS3PUtil.Blit(src, dst, uberMaterial, 0);
                 }
             }
 
             if (!uberActive && !fxaaActive)
-                Graphics.Blit(src, dst);
+                KS3PUtil.Blit(src, dst);
 
 #if UNITY_EDITOR
             if (profile.monitors.onFrameEndEditorOnly != null)
             {
-                Graphics.Blit(dst, destination);
+                KS3PUtil.Blit(dst, destination);
 
                 var oldRt = RenderTexture.active;
                 profile.monitors.onFrameEndEditorOnly(dst);
