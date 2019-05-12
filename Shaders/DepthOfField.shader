@@ -19,7 +19,7 @@ Shader "Hidden/Post FX/Depth Of Field"
         {
             Name "CoC Calculation"
             CGPROGRAM
-                #pragma target 3.0
+                #pragma target 5.0
                 #pragma vertex VertDOF
                 #pragma fragment FragCoC
                 #include "DepthOfField.cginc"
