@@ -1,0 +1,12 @@
+﻿namespace KS3P.Operators
+{
+    [KSPAddon(KSPAddon.Startup.TrackingStation, false)]
+    public sealed class TrackStationOperator : PostProcessingOperator
+    {
+        protected override void Process()
+        {
+            KS3P.currentScene = KS3P.Scene.TrackingStation;
+            Patch(true, KS3P.Scene.TrackingStation);
+        }
+    }
+}

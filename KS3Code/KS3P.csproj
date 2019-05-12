@@ -45,12 +45,21 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Core\Main.cs" />
-    <Compile Include="Core\SaveProfile.cs" />
-    <Compile Include="Core\UI.cs" />
+    <Compile Include="ConfigWriter.cs" />
+    <Compile Include="Operators\FlightOperator.cs" />
+    <Compile Include="KS3P.cs" />
+    <Compile Include="KS3PUtil.cs" />
+    <Compile Include="Operators\MainMenuOperator.cs" />
+    <Compile Include="Parser.cs" />
+    <Compile Include="Operators\PostProcessingOperator.cs" />
+    <Compile Include="Profile.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Shaders\ShaderManager.cs" />
-    <Compile Include="Shaders\Unity.cs" />
+    <Compile Include="ShaderLoader.cs" />
+    <Compile Include="Operators\SpaceCenterOperator.cs" />
+    <Compile Include="Operators\SPHOperator.cs" />
+    <Compile Include="Operators\TrackingStationOperator.cs" />
+    <Compile Include="Unity.cs" />
+    <Compile Include="Operators\VABOperator.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
