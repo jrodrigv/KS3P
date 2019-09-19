@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
-using System;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using UnityEngine;
 
 namespace KSP_PostProcessing
 {
@@ -12,34 +13,34 @@ namespace KSP_PostProcessing
     public sealed class KS3P : MonoBehaviour
     {
         #region LoggingCenter
-        public static void Error(string input, ref List<string> log)
+        internal static void Error(string input, ref List<string> log)
         {
             Debug.LogError("[KS3P]: " + input);
             log.Add("[Err]" + input);
         }
-        public static void Error(string input) { Debug.Log("[KS3P]: " + input); }
-        public static void Exception(string message, Exception e, ref List<string> log)
+        internal static void Error(string input) { Debug.LogError("[KS3P]: " + input); }
+        internal static void Exception(string message, Exception e, ref List<string> log)
         {
             Debug.LogException(e);
             log.Add("[Exc]: " + message);
             log.Add("    Stacktrace: " + e.Message);
         }
-        public static void Exception(string message, Exception e)
+        internal static void Exception(string message, Exception e)
         {
             Debug.LogException(e);
         }
-        public static void Warning(string input, ref List<string> log)
+        internal static void Warning(string input, ref List<string> log)
         {
             Debug.LogWarning("[KS3P]: " + input);
             log.Add("[Wrn]: " + input);
         }
-        public static void Warning(string input) { Debug.LogWarning("[KS3P]: " + input); }
-        public static void Log(string input, ref List<string> log)
+        internal static void Warning(string input) { Debug.LogWarning("[KS3P]: " + input); }
+        internal static void Log(string input, ref List<string> log)
         {
             Debug.Log("[KS3P]: " + input);
             log.Add("[Log]: " + input);
         }
-        public static void Log(string input) { Debug.LogWarning("[KS3P]: " + input); }
+        internal static void Log(string input) { Debug.Log("[KS3P]: " + input); }
         #endregion
 
         // for making spawning the GUI customizable
@@ -83,7 +84,7 @@ namespace KSP_PostProcessing
             ShaderLoader.LoadShaders(ref logger);
 
             // get main config
-            string configLocation = Path.Combine(KS3PUtil.GetRoot(), "GameData");
+            string configLocation = Path.Combine(KS3PUtil.Root, "GameData");
             configLocation = Path.Combine(configLocation, "KS3P");
             configLocation = Path.Combine(configLocation, "Configuration.cfg");
 
@@ -91,25 +92,28 @@ namespace KSP_PostProcessing
             SetKeyCode(ConfigNode.Load(configLocation));
 
             // save logfile
-            File.WriteAllLines(Path.Combine(KS3PUtil.GetLog(), "log.txt"), logger.ToArray());
+            File.WriteAllLines(Path.Combine(KS3PUtil.Log, "log.txt"), logger.ToArray());
         }
+
+        /// <summary>
+        /// The current status of the KS3P.
+        /// </summary>
+        static private bool KS3P_active = true;
 
         /// <summary>
         /// KS3P enabled status
         /// <para>Get: returns the current status of KS3P: enabled or not?</para>
         /// <para>Set: either enables or disables KS3P depending on the value given.</para>
         /// </summary>
-        static bool KS3P_Enabled
+        internal static bool KS3P_Enabled
         {
-            get
-            {
-                return (cam) ? cam.enabled : false;
-            }
+            get => KS3P_active;
             set
             {
                 if (cam)
                 {
                     cam.enabled = value;
+                    KS3P_active = value;
                 }
                 else
                 {
@@ -119,23 +123,45 @@ namespace KSP_PostProcessing
         }
 
         // the PP behavior manager
-        public static PostProcessingBehaviour cam;
+        internal static PostProcessingBehaviour cam;
 
         // Updates the core in response to a scene change.
-        public static void Register(PostProcessingBehaviour target, Scene targetScene)
+        internal static void Register(PostProcessingBehaviour target, Scene targetScene)
         {
+            IEnumerable<Profile> sceneProfiles = loadedProfiles.Where(selectedprofile => selectedprofile.scenes[(int)targetScene]);
+            if (sceneProfiles.Count() > 0)
+            {
+                target.profile = sceneProfiles.First().profile;
+                KS3P.Log("Switch to profile \"" + sceneProfiles.First().ProfileName + "\"");
+            }
+            else
+            {
+                target.profile = loadedProfiles[targetScenes[(int)targetScene]].profile;
+                KS3P.Log("Switch to profile \"" + loadedProfiles[targetScenes[(int)targetScene]].ProfileName + "\"");
+            }
             cam = target;
-            target.profile = loadedProfiles[targetScenes[(int)targetScene]].profile;
+            cam.enabled = KS3P_Enabled;
         }
 
         // Registers a new texture references (so the GUI can manage and/or assign them)
-        public static void Register(string path, Texture2D tex, TexType type)
+        internal static void Register(string path, Texture2D tex, TexType type)
         {
             TextureReference reference = new TextureReference(tex, path, type);
             if(!loadedTextures.Contains(reference))
             {
                 loadedTextures.Add(reference);
             }
+        }
+        internal static string GetPathOf(Texture2D tex)
+        {
+            for(int i = 0; i < loadedTextures.Count; i++)
+            {
+                if(loadedTextures[i].tex == tex)
+                {
+                    return loadedTextures[i].name;
+                }
+            }
+            return null;
         }
 
         // All available profiles
@@ -147,7 +173,7 @@ namespace KSP_PostProcessing
         /// </summary>
         /// <param name="scene">The scene we want to fetch the profile for.</param>
         /// <returns></returns>
-        public PostProcessingProfile GetProfile(Scene scene)
+        internal PostProcessingProfile GetProfile(Scene scene)
         {
             return loadedProfiles[targetScenes[(int)scene]].profile;
         }
@@ -177,10 +203,10 @@ namespace KSP_PostProcessing
         Scene currentlyEditingScene;
 
         // the scene we are currently in, auto-set in preparation for the main menu.
-        public static Scene currentScene = Scene.MainMenu;
+        internal static Scene currentScene = Scene.MainMenu;
 
         #region GuiHelpers
-        public enum CurrentMixerChannel
+        internal enum CurrentMixerChannel
         {
             Red = 0,
             Green = 1,
@@ -188,7 +214,7 @@ namespace KSP_PostProcessing
         }
         CurrentMixerChannel channel = CurrentMixerChannel.Red;
 
-        public enum LogMode
+        internal enum LogMode
         {
             Slope = 0,
             Power = 1,
@@ -196,7 +222,7 @@ namespace KSP_PostProcessing
         }
         LogMode logMode = LogMode.Slope;
 
-        public enum LinMode
+        internal enum LinMode
         {
             Lift = 0,
             Gamma = 1,
@@ -206,9 +232,9 @@ namespace KSP_PostProcessing
 
         struct EnumEntry
         {
-            public int position;
-            public string name;
-            public EnumEntry(int pos, string name)
+            internal int position;
+            internal string name;
+            internal EnumEntry(int pos, string name)
             {
                 position = pos;
                 this.name = name;
@@ -216,17 +242,17 @@ namespace KSP_PostProcessing
         }
         struct TextureReference
         {
-            public Texture2D tex;
-            public string name;
-            public TexType type;
-            public TextureReference(Texture2D tex, string name, TexType type)
+            internal Texture2D tex;
+            internal string name;
+            internal TexType type;
+            internal TextureReference(Texture2D tex, string name, TexType type)
             {
                 this.tex = tex;
                 this.name = name;
                 this.type = type;
             }
         }
-        public enum TexType
+        internal enum TexType
         {
             LensDirt = 0,
             Lut = 1,
@@ -239,7 +265,7 @@ namespace KSP_PostProcessing
         /// <summary>
         /// If true, KS3P encountered a critical error and had to shut down.
         /// </summary>
-        public static bool criticalError = false;
+        internal static bool criticalError = false;
         /// <summary>
         /// The current status of the GUI.
         /// </summary>
@@ -247,7 +273,7 @@ namespace KSP_PostProcessing
         /// <summary>
         /// The GUI window's size.
         /// </summary>
-        public Rect rect = new Rect(0f, 0f, 300f, 500f);
+        internal Rect rect = new Rect(10f, 60f, 300f, 500f);
 
         /// <summary>
         /// The cached value of most GUI items
@@ -270,7 +296,7 @@ namespace KSP_PostProcessing
         /// <summary>
         /// The current profile used.
         /// </summary>
-        public ushort currentProfile = 0;
+        internal ushort currentProfile = 0;
 
         // The name displayed by the GUI window
         string displayname = "KS3P GUI Menu";
@@ -278,7 +304,7 @@ namespace KSP_PostProcessing
         /// <summary>
         /// All possible GUI statuses
         /// </summary>
-        public enum EditorWindowStatus
+        internal enum EditorWindowStatus
         {
             MainMenu = 0,
             Setup = 1,
@@ -311,11 +337,11 @@ namespace KSP_PostProcessing
         /// <summary>
         /// The current GUI status
         /// </summary>
-        public EditorWindowStatus CurrentStatus = EditorWindowStatus.MainMenu;
+        internal EditorWindowStatus CurrentStatus = EditorWindowStatus.MainMenu;
         /// <summary>
         /// The last GUI status
         /// </summary>
-        public EditorWindowStatus LastStatus = EditorWindowStatus.None;
+        internal EditorWindowStatus LastStatus = EditorWindowStatus.None;
 
         /// <summary>
         /// Cached type grab of the currently targeted enumerator
@@ -382,109 +408,109 @@ namespace KSP_PostProcessing
         /// <summary>
         /// Rect data of the 'close gui' button.
         /// </summary>
-        public Rect closeButtonPosition = new Rect(280f, 2f, 17f, 17f);
+        internal Rect closeButtonPosition = new Rect(280f, 2f, 17f, 17f);
 
         /// <summary>
         /// Rect data of the 'return' button.
         /// </summary>
-        public Rect returnPosition = new Rect(2f, 2f, 50f, 15f);
+        internal Rect returnPosition = new Rect(2f, 2f, 50f, 15f);
         
 
 
         /// <summary>
         /// The scale of a standalone GUI button.
         /// </summary>
-        public Vector2 buttonSize = new Vector2(250f, 25f);
+        internal Vector2 buttonSize = new Vector2(250f, 25f);
         /// <summary>
         /// The default x-axis offset of a standalone GUI button.
         /// </summary>
-        public float offsetX = 25f;
+        internal float offsetX = 25f;
         /// <summary>
         /// The default y-axis offset of a standalone GUI button.
         /// </summary>
-        public float offsetY = 25f;
+        internal float offsetY = 25f;
 
 
 
         /// <summary>
         /// The amount of space between GUI elements.
         /// </summary>
-        public float increment = 30f;
+        internal float increment = 30f;
 
 
 
         /// <summary>
         /// The size of a field label.
         /// </summary>
-        public Vector2 labelSize = new Vector2(125f, 25f);
+        internal Vector2 labelSize = new Vector2(125f, 25f);
         /// <summary>
         /// The default x-axis position of a field label.
         /// </summary>
-        public float labelX = 5f;
+        internal float labelX = 5f;
         /// <summary>
         /// The default y-axis position of a field label.
         /// </summary>
-        public float labelY = 25f;
+        internal float labelY = 25f;
 
 
 
         /// <summary>
         /// The size of a field's input area.
         /// </summary>
-        public Vector2 fieldSize = new Vector2(125f, 25f);
+        internal Vector2 fieldSize = new Vector2(125f, 25f);
         /// <summary>
         /// The default x-axis position of a field's input area.
         /// </summary>
-        public float fieldX = 125f;
+        internal float fieldX = 125f;
         /// <summary>
         /// The default y-axis position of a field's input area.
         /// </summary>
-        public float fieldY = 30f;
+        internal float fieldY = 30f;
 
 
 
         /// <summary>
         /// The size of a field's current value display.
         /// </summary>
-        public Vector2 valueSize = new Vector2(100f, 25f);
+        internal Vector2 valueSize = new Vector2(100f, 25f);
         /// <summary>
         /// The default x-axis position of a field's current value display.
         /// </summary>
-        public float valueX = 260f;
+        internal float valueX = 260f;
         /// <summary>
         /// The default y-axis position of a field's current value display.
         /// </summary>
-        public float valueY = 25f;
+        internal float valueY = 25f;
 
         /// <summary>
         /// The position of the 'export' button.
         /// </summary>
-        public Rect exportRect = new Rect(207f, 477f, 90f, 20f);
+        internal Rect exportRect = new Rect(207f, 477f, 90f, 20f);
 
         /// <summary>
         /// If true, the GUI is editing a curve.
         /// </summary>
-        public bool isEditingCurve = false;
+        internal bool isEditingCurve = false;
 
         // are used for automatically computing GUI elements using only an index.
 
-        public Rect GetRect(float multiplier)
+        Rect GetRect(float multiplier)
         {
             return new Rect(new Vector2(offsetX, offsetY + (multiplier * increment)), buttonSize);
         }
-        public Rect GetRect(float multiplier, float heightScalar)
+        Rect GetRect(float multiplier, float heightScalar)
         {
             return new Rect(new Vector2(offsetX, offsetY + (multiplier * increment)), new Vector2(buttonSize.x, buttonSize.y * heightScalar));
         }
-        public Rect GetLabel(float multiplier)
+        Rect GetLabel(float multiplier)
         {
             return new Rect(new Vector2(labelX, labelY + (multiplier * increment)), labelSize);
         }
-        public Rect GetField(float multiplier)
+        Rect GetField(float multiplier)
         {
             return new Rect(new Vector2(fieldX, fieldY + (multiplier * increment)), fieldSize);
         }
-        public Rect GetValue(float multiplier)
+        Rect GetValue(float multiplier)
         {
             return new Rect(new Vector2(valueX, valueY + (multiplier * increment)), valueSize);
         }
@@ -492,13 +518,20 @@ namespace KSP_PostProcessing
 
 
         // with the mod properly prepared, we can now start loading data.
-        private void Start()
+        void Start()
+        {
+            StartCoroutine(LoadProfilesAndTextures());
+        }
+
+        IEnumerator LoadProfilesAndTextures()
         {
             // cached signleton grab for performance
             GameDatabase database = GameDatabase.Instance;
 
+            yield return new WaitUntil(() => database.IsReady() == true);
+
             // the texture KS3P will resort to if none can be loaded.
-            string fallbackpath = "KS3P/Textures/Fallback.png";
+            string fallbackpath = "KS3P/Textures/Fallback";
             Texture2D fallbacktex = database.GetTexture(fallbackpath, false);
 
             // register the fallback tex to be eligible for all texture types.
@@ -521,8 +554,10 @@ namespace KSP_PostProcessing
                 {
                     profilenodes.Add(node);
                 }
+
+                KS3P.Log("Loading textures");
                 // properly register all loaded textures
-                foreach(ConfigNode node in cfg.config.GetNodes("Textures"))
+                foreach (ConfigNode node in cfg.config.GetNodes("Textures"))
                 {
                     foreach(string value in node.GetValues("dirtTex"))
                     {
@@ -541,13 +576,16 @@ namespace KSP_PostProcessing
                         loadedTextures.Add(new TextureReference(database.GetTexture(value, false), value, TexType.Lut));
                     }
                 }
+                KS3P.Log("Textures loaded");
             }
 
+            KS3P.Log("Loading profiles");
             // second config pass
             foreach (var profilenode in profilenodes)
             {
                 loadedProfiles.Add(profilenode);
             }
+            KS3P.Log("Profiles loaded");
 
             // default initialization
             GuiEnabled = false;
@@ -585,7 +623,7 @@ namespace KSP_PostProcessing
         }
 
         // manual GUI toggle
-        private void Update()
+        void Update()
         {
             if (Input.GetKey(primary) && Input.GetKeyDown(secondary))
             {
@@ -680,18 +718,19 @@ namespace KSP_PostProcessing
                     loadedProfiles[currentProfile].profile.dithering.enabled = BoolField(loadedProfiles[currentProfile].profile.dithering.enabled, GetLabel(15f), "Dithering Enabled");
                     if (GUI.Button(exportRect, "Export Profile"))
                     {
-                        ConfigWriter.ToFile(loadedProfiles[currentProfile]);
+                        ConfigWriter.ToFile(loadedProfiles[currentProfile], loadedProfiles[currentProfile].ProfileName, loadedProfiles[currentProfile].AuthorName);
                     }
                     break;
                 #endregion
 
                 #region EditProfileSettings
                 case EditorWindowStatus.ProfileSettingsEditor:
-                    loadedProfiles[currentProfile].identifier = StringField(loadedProfiles[currentProfile].identifier, GetRect(0f));
+                    loadedProfiles[currentProfile].AuthorName = NamedStringField(loadedProfiles[currentProfile].AuthorName, 0f, "Author");
+                    loadedProfiles[currentProfile].ProfileName = NamedStringField(loadedProfiles[currentProfile].ProfileName, 1f, "Name");
 
                     for (int i = 0; i < 9; i++)
                     {
-                        loadedProfiles[currentProfile].scenes[i] = CachedBoolField(loadedProfiles[currentProfile].scenes[i], GetRect(i + 1), "s_" + i.ToString(), "Selectable for scene [" + ((Scene)i).ToString() + "]");
+                        loadedProfiles[currentProfile].scenes[i] = CachedBoolField(loadedProfiles[currentProfile].scenes[i], GetRect(i + 2), "s_" + i.ToString(), "Selectable for scene [" + ((Scene)i).ToString() + "]");
                     }
 
                     break;
@@ -844,8 +883,8 @@ namespace KSP_PostProcessing
                     bloom.softKnee = FloatValue("b_sk", GetValue(3f));
 
                     Text("Radius", GetLabel(4f));
-                    bloom.radius = FloatSlider(bloom.radius, "b_r", GetField(4f), 1f, 7f);
-                    bloom.radius = FloatValue("b_r", GetValue(4f), 1f, 7f);
+                    bloom.radius = FloatSlider(bloom.radius, "b_r", GetField(4f), 0.75f, 7f);
+                    bloom.radius = FloatValue("b_r", GetValue(4f), 0.75f, 7f);
 
                     bloom.antiFlicker = CachedBoolField(bloom.antiFlicker, GetRect(5f), "b_af", "Anti Flicker");
 
@@ -1087,8 +1126,8 @@ namespace KSP_PostProcessing
                     }
 
                     DrawFloatSlider("Red", ref channelvalues.x, "cg_mix_r", 1f, -2f, 2f);
-                    DrawFloatSlider("Red", ref channelvalues.y, "cg_mix_g", 2f, -2f, 2f);
-                    DrawFloatSlider("Red", ref channelvalues.z, "cg_mix_b", 3f, -2f, 2f);
+                    DrawFloatSlider("Green", ref channelvalues.y, "cg_mix_g", 2f, -2f, 2f);
+                    DrawFloatSlider("Blue", ref channelvalues.z, "cg_mix_b", 3f, -2f, 2f);
 
                     switch (channel)
                     {
@@ -1340,8 +1379,6 @@ namespace KSP_PostProcessing
             GUI.DragWindow();
         }
         
-
-
         #region GuiMethods
 
         /// <summary>
@@ -1354,7 +1391,7 @@ namespace KSP_PostProcessing
         /// <param name="leftBound">The slider's minimum value.</param>
         /// <param name="rightBound">The slider's maximum value.</param>
         /// <param name="digits">The maximum amount of digits to display.</param>
-        public void DrawFloatSlider(string name, ref float input, string identifier, float multiplier, float leftBound = 0f, float rightBound = 1f, int digits = 2)
+        void DrawFloatSlider(string name, ref float input, string identifier, float multiplier, float leftBound = 0f, float rightBound = 1f, int digits = 2)
         {
             Text(name, GetLabel(multiplier));
             input = FloatSlider(input, identifier, GetField(multiplier), leftBound, rightBound, digits);
@@ -1370,7 +1407,7 @@ namespace KSP_PostProcessing
         /// <param name="multiplier">The position of this slider.</param>
         /// <param name="leftBound">The slider's minimum value.</param>
         /// <param name="rightBound">The slider's maximum value.</param>
-        public void DrawIntSlider(string name, ref int input, string identifier, float multiplier, int leftBound = 0, int rightBound = 1)
+        void DrawIntSlider(string name, ref int input, string identifier, float multiplier, int leftBound = 0, int rightBound = 1)
         {
             Text(name, GetLabel(multiplier));
             input = IntSlider(input, identifier, GetField(multiplier), leftBound, rightBound);
@@ -1385,7 +1422,7 @@ namespace KSP_PostProcessing
         /// <param name="position">The position of this field in the GUI.</param>
         /// <param name="digits">The max amount of digits to show.</param>
         /// <returns></returns>
-        public float FloatField(float defaultValue, string identifier, Rect position, int digits = 2)
+        float FloatField(float defaultValue, string identifier, Rect position, int digits = 2)
         {
             GUI.enabled = GuiEnabled;
 
@@ -1427,7 +1464,7 @@ namespace KSP_PostProcessing
         /// <param name="identifier">The field's data key.</param>
         /// <param name="position">The field's position on the GUI.</param>
         /// <returns></returns>
-        public int IntField(int defaultValue, string identifier, Rect position)
+        int IntField(int defaultValue, string identifier, Rect position)
         {
             GUI.enabled = GuiEnabled;
 
@@ -1460,7 +1497,7 @@ namespace KSP_PostProcessing
             return value;
         }
 
-        public float FloatValue(string identifier, Rect position, float min = 0f, float max = 1f, int digits = 2)
+        float FloatValue(string identifier, Rect position, float min = 0f, float max = 1f, int digits = 2)
         {
             GUI.enabled = GuiEnabled;
             string cache = GUI.TextField(position, Round(sliders[identifier], digits).ToString());
@@ -1477,7 +1514,7 @@ namespace KSP_PostProcessing
                 return sliders[identifier];
             }
         }
-        public int IntValue(string identifier, Rect position, int min = 0, int max = 1)
+        int IntValue(string identifier, Rect position, int min = 0, int max = 1)
         {
             GUI.enabled = GuiEnabled;
             string cache = GUI.TextField(position, Mathf.Floor(sliders[identifier]).ToString());
@@ -1495,12 +1532,12 @@ namespace KSP_PostProcessing
             }
         }
 
-        public bool BoolField(bool defaultValue, Rect position, string name = " Boolean")
+        bool BoolField(bool defaultValue, Rect position, string name = " Boolean")
         {
             GUI.enabled = GuiEnabled;
             return GUI.Toggle(position, defaultValue, name);
         }
-        public bool CachedBoolField(bool defaultValue, Rect position, string identifier, string name = " Boolean")
+        bool CachedBoolField(bool defaultValue, Rect position, string identifier, string name = " Boolean")
         {
             GUI.enabled = GuiEnabled;
             if (toggles.ContainsKey(identifier))
@@ -1515,13 +1552,19 @@ namespace KSP_PostProcessing
             }
         }
 
-        public string StringField(string defaultValue, Rect position)
+        string StringField(string defaultValue, Rect position)
         {
             GUI.enabled = GuiEnabled;
             return GUI.TextField(position, defaultValue);
         }
+        string NamedStringField(string defaultValue, float multiplier, string name)
+        {
+            GUI.enabled = GuiEnabled;
+            Text(name, GetLabel(multiplier));
+            return GUI.TextField(GetField(multiplier), defaultValue);
+        }
 
-        public void Button(string label, Action callback, Rect rect)
+        void Button(string label, Action callback, Rect rect)
         {
             // does the button have functionality?
             if (callback != null)
@@ -1534,7 +1577,7 @@ namespace KSP_PostProcessing
             }
         }
 
-        public float FloatSlider(float value, string identifier, Rect position, float leftBound = 0f, float rightBound = 1f, int digits = 2)
+        float FloatSlider(float value, string identifier, Rect position, float leftBound = 0f, float rightBound = 1f, int digits = 2)
         {
             GUI.enabled = GuiEnabled;
             if (sliders.ContainsKey(identifier))
@@ -1548,7 +1591,7 @@ namespace KSP_PostProcessing
                 return Round(sliders[identifier], digits);
             }
         }
-        public int IntSlider(int value, string identifier, Rect position, float leftBound = 0f, float rightBound = 1f)
+        int IntSlider(int value, string identifier, Rect position, float leftBound = 0f, float rightBound = 1f)
         {
             GUI.enabled = GuiEnabled;
             if (sliders.ContainsKey(identifier))
@@ -1569,7 +1612,7 @@ namespace KSP_PostProcessing
         /// <param name="f">The float to round off.</param>
         /// <param name="digits">The max amount of digits.</param>
         /// <returns></returns>
-        public float Round(float f, int digits)
+        float Round(float f, int digits)
         {
             // messy, but it works.
             return (float)Math.Round(f, digits);
@@ -1579,7 +1622,7 @@ namespace KSP_PostProcessing
         /// Draws an enumerator on the GUI.
         /// </summary>
         /// <param name="enumType">The type of the enumerator to draw.</param>
-        public void DrawEnum(Type enumType)
+        void DrawEnum(Type enumType)
         {
             // initialize database if necessary
             if (redrawEnum)
@@ -1610,7 +1653,7 @@ namespace KSP_PostProcessing
         /// Draws a list of sorts on the GUI.
         /// </summary>
         /// <param name="mode">The texture type we're selecting for.</param>
-        public void DrawList(TexType mode)
+        void DrawList(TexType mode)
         {
             if (redrawEnum)
             {
@@ -1665,7 +1708,7 @@ namespace KSP_PostProcessing
         /// <summary>
         /// Swaps the values of two fields.
         /// </summary>
-        public void SwapValues(ref float left, ref float right, string identifierLeft, string identifierRight)
+        void SwapValues(ref float left, ref float right, string identifierLeft, string identifierRight)
         {
             float hold = right;
             right = left;
@@ -1675,25 +1718,25 @@ namespace KSP_PostProcessing
             sliders[identifierRight] = hold;
         }
 
-        public void Text(string value, Rect pos)
+        void Text(string value, Rect pos)
         {
             GUI.Label(pos, value);
         }
-        public void Text(object o, Rect pos)
+        void Text(object o, Rect pos)
         {
             GUI.Label(pos, o.ToString());
         }
         #endregion
 
-        public void OnPressSetup()
+        void OnPressSetup()
         {
             CurrentStatus = EditorWindowStatus.Setup;
         }
-        public void OnPressEditor()
+        void OnPressEditor()
         {
             CurrentStatus = EditorWindowStatus.EditorMain;
         }
-        public void OnPressClose()
+        void OnPressClose()
         {
             if (CurrentStatus == EditorWindowStatus.DrawingEnum || CurrentStatus == EditorWindowStatus.DrawingList)
             {
@@ -1702,7 +1745,7 @@ namespace KSP_PostProcessing
             CurrentStatus = EditorWindowStatus.MainMenu;
             GuiEnabled = false;
         }
-        public void OnPressReturn()
+        void OnPressReturn()
         {
             if (CurrentStatus == EditorWindowStatus.SceneSelector)
             {
@@ -1727,45 +1770,45 @@ namespace KSP_PostProcessing
             }
         }
 
-        public void OnSelectProfile()
+        void OnSelectProfile()
         {
             displayname = "Select Profile for editing";
             CurrentStatus = EditorWindowStatus.ProfileSelector;
         }
 
-        public void OnEditProperties()
+        void OnEditProperties()
         {
             CurrentStatus = EditorWindowStatus.ProfileSettingsEditor;
         }
 
         #region EditorVoids
-        public void SpawnAAEditor() { CurrentStatus = EditorWindowStatus.AAEditor; }
-        public void SpawnAOEditor() { CurrentStatus = EditorWindowStatus.AOEditor; }
-        public void SpawnBEditor() { CurrentStatus = EditorWindowStatus.BEditor; }
-        public void SpawnDOFEditor() { CurrentStatus = EditorWindowStatus.DOFEditor; }
-        public void SpawnMBEditor() { CurrentStatus = EditorWindowStatus.MBEditor; }
-        public void SpawnEAEditor() { CurrentStatus = EditorWindowStatus.EAEditor; }
-        public void SpawnCGEditor() { CurrentStatus = EditorWindowStatus.CGEditor; }
-        public void SpawnULEditor() { CurrentStatus = EditorWindowStatus.ULEditor; }
-        public void SpawnCAEditor() { CurrentStatus = EditorWindowStatus.CAEditor; }
-        public void SpawnGEditor() { CurrentStatus = EditorWindowStatus.GEditor; }
-        public void SpawnVEditor() { CurrentStatus = EditorWindowStatus.VEditor; }
-        public void SpawnCG_Mapper() { CurrentStatus = EditorWindowStatus.CG_Tonemapper; }
-        public void SpawnCG_Basic() { CurrentStatus = EditorWindowStatus.CG_Basic; }
-        public void SpawnCG_Mixer() { CurrentStatus = EditorWindowStatus.CG_Mixer; }
-        public void SpawnCG_Curve() { CurrentStatus = EditorWindowStatus.CG_Curves; }
-        public void SpawnCG_Trackballs() { CurrentStatus = EditorWindowStatus.CG_Trackballs; }
-        public void SpawnSSREditor() { CurrentStatus = EditorWindowStatus.SSREditor; }
+        void SpawnAAEditor() => CurrentStatus = EditorWindowStatus.AAEditor;
+        void SpawnAOEditor() => CurrentStatus = EditorWindowStatus.AOEditor;
+        void SpawnBEditor() => CurrentStatus = EditorWindowStatus.BEditor;
+        void SpawnDOFEditor() => CurrentStatus = EditorWindowStatus.DOFEditor;
+        void SpawnMBEditor() => CurrentStatus = EditorWindowStatus.MBEditor;
+        void SpawnEAEditor() => CurrentStatus = EditorWindowStatus.EAEditor;
+        void SpawnCGEditor() => CurrentStatus = EditorWindowStatus.CGEditor;
+        void SpawnULEditor() => CurrentStatus = EditorWindowStatus.ULEditor;
+        void SpawnCAEditor() => CurrentStatus = EditorWindowStatus.CAEditor;
+        void SpawnGEditor() => CurrentStatus = EditorWindowStatus.GEditor;
+        void SpawnVEditor() => CurrentStatus = EditorWindowStatus.VEditor;
+        void SpawnCG_Mapper() => CurrentStatus = EditorWindowStatus.CG_Tonemapper;
+        void SpawnCG_Basic() => CurrentStatus = EditorWindowStatus.CG_Basic;
+        void SpawnCG_Mixer() => CurrentStatus = EditorWindowStatus.CG_Mixer;
+        void SpawnCG_Curve() => CurrentStatus = EditorWindowStatus.CG_Curves;
+        void SpawnCG_Trackballs() => CurrentStatus = EditorWindowStatus.CG_Trackballs;
+        void SpawnSSREditor() => CurrentStatus = EditorWindowStatus.SSREditor;
         #endregion
 
-        public void OnEditAAPreset()
+        void OnEditAAPreset()
         {
             currentTargetEnum = typeof(AntialiasingModel.FxaaPreset);
             LastStatus = CurrentStatus;
             CurrentStatus = EditorWindowStatus.DrawingEnum;
             onEnumSelect = OnSelectAAPreset;
         }
-        public void OnSelectAAPreset(int chosen)
+        void OnSelectAAPreset(int chosen)
         {
             var settings = loadedProfiles[currentProfile].profile.antialiasing.settings;
             var fxaa = settings.fxaaSettings;
@@ -1778,14 +1821,14 @@ namespace KSP_PostProcessing
             CurrentStatus = LastStatus;
         }
 
-        public void OnEditAAMethod()
+        void OnEditAAMethod()
         {
             currentTargetEnum = typeof(AntialiasingModel.Method);
             LastStatus = CurrentStatus;
             CurrentStatus = EditorWindowStatus.DrawingEnum;
             onEnumSelect = OnSelectAAMethod;
         }
-        public void OnSelectAAMethod(int chosen)
+        void OnSelectAAMethod(int chosen)
         {
             var settings = loadedProfiles[currentProfile].profile.antialiasing.settings;
             settings.method = (AntialiasingModel.Method)chosen;
@@ -1793,14 +1836,14 @@ namespace KSP_PostProcessing
             CurrentStatus = LastStatus;
         }
 
-        public void OnEditAOSampleCount()
+        void OnEditAOSampleCount()
         {
             currentTargetEnum = typeof(AmbientOcclusionModel.SampleCount);
             LastStatus = CurrentStatus;
             CurrentStatus = EditorWindowStatus.DrawingEnum;
             onEnumSelect = OnSelectAOSampleCount;
         }
-        public void OnSelectAOSampleCount(int chosen)
+        void OnSelectAOSampleCount(int chosen)
         {
             var settings = loadedProfiles[currentProfile].profile.ambientOcclusion.settings;
             settings.sampleCount = (AmbientOcclusionModel.SampleCount)chosen;
@@ -1808,14 +1851,14 @@ namespace KSP_PostProcessing
             CurrentStatus = LastStatus;
         }
 
-        public void OnEditDOFKernel()
+        void OnEditDOFKernel()
         {
             currentTargetEnum = typeof(DepthOfFieldModel.KernelSize);
             LastStatus = CurrentStatus;
             CurrentStatus = EditorWindowStatus.DrawingEnum;
             onEnumSelect = OnSelectDOFKernel;
         }
-        public void OnSelectDOFKernel(int chosen)
+        void OnSelectDOFKernel(int chosen)
         {
             var settings = loadedProfiles[currentProfile].profile.depthOfField.settings;
             settings.kernelSize = (DepthOfFieldModel.KernelSize)chosen;
@@ -1823,14 +1866,14 @@ namespace KSP_PostProcessing
             CurrentStatus = LastStatus;
         }
 
-        public void OnEditEAType()
+        void OnEditEAType()
         {
             currentTargetEnum = typeof(EyeAdaptationModel.EyeAdaptationType);
             LastStatus = CurrentStatus;
             CurrentStatus = EditorWindowStatus.DrawingEnum;
             onEnumSelect = OnSelectEAType;
         }
-        public void OnSelectEAType(int chosen)
+        void OnSelectEAType(int chosen)
         {
             var settings = loadedProfiles[currentProfile].profile.eyeAdaptation.settings;
             settings.adaptationType = (EyeAdaptationModel.EyeAdaptationType)chosen;
@@ -1838,14 +1881,14 @@ namespace KSP_PostProcessing
             CurrentStatus = LastStatus;
         }
 
-        public void OnEditVMode()
+        void OnEditVMode()
         {
             currentTargetEnum = typeof(VignetteModel.Mode);
             LastStatus = CurrentStatus;
             CurrentStatus = EditorWindowStatus.DrawingEnum;
             onEnumSelect = OnSelectVMode;
         }
-        public void OnSelectVMode(int chosen)
+        void OnSelectVMode(int chosen)
         {
             var settings = loadedProfiles[currentProfile].profile.vignette.settings;
             settings.mode = (VignetteModel.Mode)chosen;
@@ -1853,14 +1896,14 @@ namespace KSP_PostProcessing
             CurrentStatus = LastStatus;
         }
 
-        public void OnEditSSRBlendType()
+        void OnEditSSRBlendType()
         {
             currentTargetEnum = typeof(ScreenSpaceReflectionModel.SSRReflectionBlendType);
             LastStatus = CurrentStatus;
             CurrentStatus = EditorWindowStatus.DrawingEnum;
             onEnumSelect = OnSelectSSRBlendType;
         }
-        public void OnSelectSSRBlendType(int chosen)
+        void OnSelectSSRBlendType(int chosen)
         {
             var settings = loadedProfiles[currentProfile].profile.screenSpaceReflection.settings;
             var reflectionsettings = settings.reflection;
@@ -1870,14 +1913,14 @@ namespace KSP_PostProcessing
             CurrentStatus = LastStatus;
         }
 
-        public void OnEditSSRQuality()
+        void OnEditSSRQuality()
         {
             currentTargetEnum = typeof(ScreenSpaceReflectionModel.SSRResolution);
             LastStatus = CurrentStatus;
             CurrentStatus = EditorWindowStatus.DrawingEnum;
             onEnumSelect = OnSelectSSRQuality;
         }
-        public void OnSelectSSRQuality(int chosen)
+        void OnSelectSSRQuality(int chosen)
         {
             var settings = loadedProfiles[currentProfile].profile.screenSpaceReflection.settings;
             var reflectionsettings = settings.reflection;
@@ -1887,14 +1930,14 @@ namespace KSP_PostProcessing
             CurrentStatus = LastStatus;
         }
 
-        public void OnEditTonemapperModel()
+        void OnEditTonemapperModel()
         {
             currentTargetEnum = typeof(ColorGradingModel.Tonemapper);
             LastStatus = CurrentStatus;
             CurrentStatus = EditorWindowStatus.DrawingEnum;
             onEnumSelect = OnSelectTonemapperModel;
         }
-        public void OnSelectTonemapperModel(int chosen)
+        void OnSelectTonemapperModel(int chosen)
         {
             var settings = loadedProfiles[currentProfile].profile.colorGrading.settings;
             var tonemapsettings = settings.tonemapping;
@@ -1907,14 +1950,14 @@ namespace KSP_PostProcessing
             CurrentStatus = LastStatus;
         }
 
-        public void OnEditTrackballModel()
+        void OnEditTrackballModel()
         {
             currentTargetEnum = typeof(ColorGradingModel.ColorWheelMode);
             LastStatus = CurrentStatus;
             CurrentStatus = EditorWindowStatus.DrawingEnum;
             onEnumSelect = OnSelectTrackballModel;
         }
-        public void OnSelectTrackballModel(int chosen)
+        void OnSelectTrackballModel(int chosen)
         {
             var settings = loadedProfiles[currentProfile].profile.colorGrading.settings;
             var tbsettings = settings.colorWheels;
@@ -1932,14 +1975,14 @@ namespace KSP_PostProcessing
             CurrentStatus = LastStatus;
         }
 
-        public void OnEditMixerColor()
+        void OnEditMixerColor()
         {
             currentTargetEnum = typeof(CurrentMixerChannel);
             LastStatus = CurrentStatus;
             CurrentStatus = EditorWindowStatus.DrawingEnum;
             onEnumSelect = OnSelectMixerColor;
         }
-        public void OnSelectMixerColor(int chosen)
+        void OnSelectMixerColor(int chosen)
         {
             channel = (CurrentMixerChannel)chosen;
             ClearSliderValue("cg_mix_r");
@@ -1948,14 +1991,14 @@ namespace KSP_PostProcessing
             CurrentStatus = LastStatus;
         }
 
-        public void OnEditLinTgt()
+        void OnEditLinTgt()
         {
             currentTargetEnum = typeof(LinMode);
             LastStatus = CurrentStatus;
             CurrentStatus = EditorWindowStatus.DrawingEnum;
             onEnumSelect = OnSelectLinTgt;
         }
-        public void OnSelectLinTgt(int chosen)
+        void OnSelectLinTgt(int chosen)
         {
             linMode = (LinMode)chosen;
             ClearSliderValue("cg_tb_r");
@@ -1965,14 +2008,14 @@ namespace KSP_PostProcessing
             CurrentStatus = LastStatus;
         }
 
-        public void OnEditLogTgt()
+        void OnEditLogTgt()
         {
             currentTargetEnum = typeof(LogMode);
             LastStatus = CurrentStatus;
             CurrentStatus = EditorWindowStatus.DrawingEnum;
             onEnumSelect = OnSelectLogTgt;
         }
-        public void OnSelectLogTgt(int chosen)
+        void OnSelectLogTgt(int chosen)
         {
             logMode = (LogMode)chosen;
             ClearSliderValue("cg_tb_r");
@@ -1991,7 +2034,7 @@ namespace KSP_PostProcessing
         }
 
         // dirt tex
-        public void OnEditDirtTex()
+        void OnEditDirtTex()
         {
             displayname = "Select Texture";
             currentTargetTex = TexType.LensDirt;
@@ -1999,7 +2042,7 @@ namespace KSP_PostProcessing
             CurrentStatus = EditorWindowStatus.DrawingList;
             onTexSelect = OnSelectDirtTex;
         }
-        public void OnSelectDirtTex(Texture2D tex)
+        void OnSelectDirtTex(Texture2D tex)
         {
             var settings = loadedProfiles[currentProfile].profile.bloom.settings;
             var dirt = settings.lensDirt;
@@ -2013,7 +2056,7 @@ namespace KSP_PostProcessing
         }
 
         // chrom tex
-        public void OnEditChromTex()
+        void OnEditChromTex()
         {
             displayname = "Select Texture";
             currentTargetTex = TexType.ChromaticTex;
@@ -2021,7 +2064,7 @@ namespace KSP_PostProcessing
             CurrentStatus = EditorWindowStatus.DrawingList;
             onTexSelect = OnSelectChromTex;
         }
-        public void OnSelectChromTex(Texture2D tex)
+        void OnSelectChromTex(Texture2D tex)
         {
             var settings = loadedProfiles[currentProfile].profile.chromaticAberration.settings;
             settings.spectralTexture = tex;
@@ -2030,7 +2073,7 @@ namespace KSP_PostProcessing
         }
 
         // mask tex
-        public void OnEditMaskTex()
+        void OnEditMaskTex()
         {
             displayname = "Select Texture";
             currentTargetTex = TexType.VignetteMask;
@@ -2038,7 +2081,7 @@ namespace KSP_PostProcessing
             CurrentStatus = EditorWindowStatus.DrawingList;
             onTexSelect = OnSelectMaskTex;
         }
-        public void OnSelectMaskTex(Texture2D tex)
+        void OnSelectMaskTex(Texture2D tex)
         {
             var settings = loadedProfiles[currentProfile].profile.vignette.settings;
 
@@ -2049,7 +2092,7 @@ namespace KSP_PostProcessing
         }
 
         // lut tex
-        public void OnEditLutTex()
+        void OnEditLutTex()
         {
             displayname = "Select Texture";
             currentTargetTex = TexType.Lut;
@@ -2057,7 +2100,7 @@ namespace KSP_PostProcessing
             CurrentStatus = EditorWindowStatus.DrawingList;
             onTexSelect = OnSelectLutTex;
         }
-        public void OnSelectLutTex(Texture2D tex)
+        void OnSelectLutTex(Texture2D tex)
         {
             var settings = loadedProfiles[currentProfile].profile.userLut.settings;
 

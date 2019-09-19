@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
+using KSP_PostProcessing.Parsers;
 
 namespace KSP_PostProcessing
 {
@@ -15,11 +16,8 @@ namespace KSP_PostProcessing
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        public static string Prepare(string s)
-        {
-            return (s.Replace("_", "")).ToLower();
-        }
-        public static bool Contains<T>(this T[] array, T item)
+        internal static string Prepare(string s) => s.Replace("_", string.Empty).ToLower().Trim();
+        internal static bool Contains<T>(this T[] array, T item)
         {
             for(int x = 0; x < array.Length; x++)
             {
@@ -30,7 +28,7 @@ namespace KSP_PostProcessing
             }
             return false;
         }
-        public static bool Contains<T>(this T[] array, T item, out int pos)
+        internal static bool Contains<T>(this T[] array, T item, out int pos)
         {
             for (int x = 0; x < array.Length; x++)
             {
@@ -43,12 +41,12 @@ namespace KSP_PostProcessing
             pos = -1;
             return false;
         }
-        public static void Remove<T>(this List<T> list, int id)
+        internal static void Remove<T>(this List<T> list, int id)
         {
             list.Remove(list[id]);
         }
         
-        public static bool IsParsableType(this Type t)
+        internal static bool IsParsableType(this Type t)
         {
             switch (Type.GetTypeCode(t))
             {
@@ -92,7 +90,7 @@ namespace KSP_PostProcessing
             }
         }
 
-        public static V Grab<K, V>(this Dictionary<K,V> dictionary, K key) where V : class
+        internal static V Grab<K, V>(this Dictionary<K,V> dictionary, K key) where V : class
         {
             if (dictionary.ContainsKey(key))
             {
@@ -101,16 +99,16 @@ namespace KSP_PostProcessing
             else return null;
         }
 
-        public static string TrimRGBA(this string s)
+        internal static string TrimRGBA(this string s)
         {
-            char[] separator = { '(' };
-            string[] parts = s.Split(separator);
-            separator = new char[1] { ')' };
-            parts = parts[1].Split(separator);
-            return parts[0];
+            if(s.TrimStart(' ').ToLower().StartsWith("rgba"))
+            {
+                return s.TrimStart(' ').Remove(0, 4).TrimStart(' ', '(').TrimEnd(' ', ')');
+            }
+            return s;
         }
 
-        public static bool TryParseKeyframe(string input, out Keyframe output)
+        internal static bool TryParseKeyframe(string input, out Keyframe output)
         {
             char[] separator = { ',' };
             string[] parts = input.Split(separator);
@@ -154,7 +152,7 @@ namespace KSP_PostProcessing
             }
         }
 
-        public static bool TryAdd(this AnimationCurve curve, string input)
+        internal static bool TryAdd(this AnimationCurve curve, string input)
         {
             Keyframe frame;
             if (TryParseKeyframe(input, out frame))
@@ -164,7 +162,7 @@ namespace KSP_PostProcessing
             }
             else return false;
         }
-        public static bool TryAdd(this AnimationCurve curve, string input, out int index)
+        internal static bool TryAdd(this AnimationCurve curve, string input, out int index)
         {
             Keyframe frame;
             if (TryParseKeyframe(input, out frame))
@@ -179,12 +177,12 @@ namespace KSP_PostProcessing
             }
         }
 
-        public static T[] AsArray<T>(this T obj)
+        internal static T[] AsArray<T>(this T obj)
         {
             return new T[1] { obj };
         }
 
-        public static string RemoveEnd(this string s, int count)
+        internal static string RemoveEnd(this string s, int count)
         {
             char[] parts = s.ToCharArray();
             string target = string.Empty;
@@ -194,58 +192,60 @@ namespace KSP_PostProcessing
             }
             return target;
         }
+
+        internal static string Root { get; private set; } = KSPUtil.ApplicationRootPath.Replace("KSP_x64_Data/../", string.Empty);
+        internal static string Log { get; private set; } = Path.Combine(Root, Path.Combine("GameData", "KS3P"));
+        internal static string Export { get; private set; } = Path.Combine(Log, "Export");
         
-        public static string GetRoot()
-        {
-            return KSPUtil.ApplicationRootPath.Replace("KSP_x64_Data/../", "");
-        }
-        public static string GetLog()
-        {
-            return Path.Combine(GetRoot(), Path.Combine("GameData", "KS3P"));
-        }
-
-        /*
-        public static void PrintPath(string path)
-        {
-            char[] separator = { '/' };
-            string[] parts = path.Split(separator);
-
-            string[] moreparts;
-            separator = new char[1] { '\\' };
-            foreach(string s in parts)
-            {
-                moreparts = s.Split(separator);
-                foreach(string str in moreparts)
-                {
-                    KS3P.Log("Printing path: " + str);
-                }
-            }
-        }
-        */
-
-        public static void Blit(Texture source, Material mat)
+        internal static void Blit(Texture source, Material mat)
         {
             Graphics.Blit(source, mat);
         }
-        public static void Blit(Texture source, RenderTexture dest)
+        internal static void Blit(Texture source, RenderTexture dest)
         {
             Graphics.Blit(source, dest);
         }
-        public static void Blit(Texture source, Material mat, int pass)
+        internal static void Blit(Texture source, Material mat, int pass)
         {
             Graphics.Blit(source, mat, pass);
         }
-        public static void Blit(Texture source, RenderTexture dest, Material mat)
+        internal static void Blit(Texture source, RenderTexture dest, Material mat)
         {
             Graphics.Blit(source, dest, mat);
         }
-        public static void Blit(Texture source, RenderTexture dest, Material mat, int pass)
+        internal static void Blit(Texture source, RenderTexture dest, Material mat, int pass)
         {
             Graphics.Blit(source, dest, mat, pass);
         }
-        public static void Blit(Texture source, RenderTexture dest, Vector2 scale, Vector2 offset)
+        internal static void Blit(Texture source, RenderTexture dest, Vector2 scale, Vector2 offset)
         {
             Graphics.Blit(source, dest, scale, offset);
+        }
+
+        internal static AntiAliasingParser aaParser = new AntiAliasingParser();
+        internal static AmbientOcclusionParser aoParser = new AmbientOcclusionParser();
+        internal static DepthOfFieldParser dofParser = new DepthOfFieldParser();
+        internal static MotionBlurParser mbParser = new MotionBlurParser();
+        internal static EyeAdaptationParser eaParser = new EyeAdaptationParser();
+        internal static BloomParser bParser = new BloomParser();
+        internal static ColorGradingParser cgParser = new ColorGradingParser();
+        internal static UserLutParser ulParser = new UserLutParser();
+        internal static ChromaticAbberationParser caParser = new ChromaticAbberationParser();
+        internal static GrainParser gParser = new GrainParser();
+        internal static VignetteParser vParser = new VignetteParser();
+        internal static ScreenSpaceReflectionParser ssrParser = new ScreenSpaceReflectionParser();
+
+        internal static Vector2 GetBounds(this AnimationCurve curve)
+        {
+            var frames = curve.keys;
+            if (frames.Length == 0)
+            {
+                return Vector2.zero;
+            }
+            else
+            {
+                return new Vector2(frames[0].time, frames[frames.Length - 1].time);
+            }
         }
     }
 }

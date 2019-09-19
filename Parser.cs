@@ -1,275 +1,27 @@
 ﻿using System;
-using UnityEngine;
-using System.Linq;
-using System.Collections.Generic;
 using System.Collections;
-//using UnityEngine;
-//using System.Reflection;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace KSP_PostProcessing.Parsers
 {
-    /*
-    public static class Parser
-    {
-        public static bool TryParse(string input, Type targetType, out object output)
-        {
-            if(targetType == typeof(string))
-            {
-                output = input;
-                return true;
-            }
-            else if(targetType == typeof(char))
-            {
-                output = input[0];
-                return true;
-            }
-            else if (targetType == typeof(float) || targetType == typeof(double))
-            {
-                double parsed;
-                if(double.TryParse(input, out parsed))
-                {
-                    output = Convert.ChangeType(parsed, targetType);
-                    return true;
-                }
-                else
-                {
-                    output = null;
-                    return false;
-                }
-            }
-            else if (targetType == typeof(int) || targetType == typeof(long) || targetType == typeof(short) || targetType == typeof(sbyte))
-            {
-                long parsed;
-                if(long.TryParse(input, out parsed))
-                {
-                    output = Convert.ChangeType(parsed, targetType);
-                    return true;
-                }
-                else
-                {
-                    output = null;
-                    return false;
-                }
-            }
-            else if (targetType == typeof(uint) || targetType == typeof(ulong) || targetType == typeof(ushort) || targetType == typeof(byte))
-            {
-                ulong parsed;
-                if(ulong.TryParse(input, out parsed))
-                {
-                    output = Convert.ChangeType(parsed, targetType);
-                    return true;
-                }
-                else
-                {
-                    output = null;
-                    return false;
-                }
-            }
-            else if (targetType.IsEnum)
-            {
-                try
-                {
-                    output = Enum.Parse(targetType, input, true);
-                    return true;
-                }
-                catch
-                {
-                    output = null;
-                    return false;
-                }
-            }
-            else if (targetType == typeof(Vector2))
-            {
-                try
-                {
-                    string[] parts = input.Split(separator);
-                    output = (new Vector2(float.Parse(parts[0]), float.Parse(parts[1])));
-                    return true;
-                }
-                catch
-                {
-                    output = null;
-                    return false;
-                }
-            }
-            else if (targetType == typeof(Vector3))
-            {
-                try
-                {
-                    string[] parts = input.Split(separator);
-                    output = (new Vector3(float.Parse(parts[0]), float.Parse(parts[1]), float.Parse(parts[2])));
-                    return true;
-                }
-                catch
-                {
-                    output = null;
-                    return false;
-                }
-            }
-            else if (targetType == typeof(Vector4))
-            {
-                try
-                {
-                    string[] parts = input.Split(separator);
-                    output = (new Vector4(float.Parse(parts[0]), float.Parse(parts[1]), float.Parse(parts[2]), float.Parse(parts[3])));
-                    return true;
-                }
-                catch
-                {
-                    output = null;
-                    return false;
-                }
-            }
-            else if (targetType == typeof(Color))
-            {
-                if (input.StartsWith("#"))
-                {
-                    // we're dealing with a hex string
-                    Color finalColor;
-                    if (ColorUtility.TryParseHtmlString(input, out finalColor))
-                    {
-                        output = finalColor;
-                        return true;
-                    }
-                    else
-                    {
-                        output = null;
-                        return false;
-                    }
-                }
-                else if (input.StartsWith("RGBA"))
-                {
-                    try
-                    {
-                        // we're dealing with an RGBA string
-                        string[] parts = input.Split(separator);
-                        if (parts.Length == 4)
-                        {
-                            output = (new Color((float.Parse(parts[0]) / 255f), (float.Parse(parts[1]) / 255f), (float.Parse(parts[2]) / 255f), (float.Parse(parts[3]) / 255f)));
-                            return true;
-                        }
-                        else
-                        {
-                            output = (new Color((float.Parse(parts[0]) / 255f), (float.Parse(parts[1]) / 255f), (float.Parse(parts[2]) / 255f), 1f));
-                            return true;
-                        }
-                    }
-                    catch
-                    {
-                        output = null;
-                        return false;
-                    }
-                }
-                else
-                {
-                    try
-                    {
-                        string[] parts = input.Split(separator);
-                        if (parts.Length == 4)
-                        {
-                            output = (new Color(float.Parse(parts[0]), float.Parse(parts[1]), float.Parse(parts[2]), float.Parse(parts[3])));
-                            return true;
-                        }
-                        else
-                        {
-                            output = (new Color(float.Parse(parts[0]), float.Parse(parts[1]), float.Parse(parts[2]), 1f));
-                            return true;
-                        }
-                    }
-                    catch
-                    {
-                        output = null;
-                        return false;
-                    }
-                }
-            }
-            else if (targetType == typeof(Texture) || targetType == typeof(Texture2D))
-            {
-                try
-                {
-                    output = GameDatabase.Instance.GetTexture(input, false);
-                    return true;
-                }
-                catch
-                {
-                    output = null;
-                    return false;
-                }
-            }
-            else
-            {
-                output = null;
-                return false;
-            }
-        }
-
-        static char[] separator = { ',' };
-
-        public static bool TryGetFiltered(string target, ConfigNode tosearch, out string result)
-        {
-            var values = tosearch.values;
-            for (int i = 0; i < values.Count; i++)
-            {
-                if (KS3PUtil.Prepare(values[i].name) == target)
-                {
-                    result = values[i].value;
-                    return true;
-                }
-            }
-            result = string.Empty;
-            return false;
-        }
-        
-        public static object ParseObject(ConfigNode data, Type type)
-        {
-            var item = Activator.CreateInstance(type);
-            PropertyInfo[] values = item.GetType().GetProperties();
-            string filtered;
-            object parsed;
-            foreach (PropertyInfo info in values)
-            {
-                if ((info.PropertyType.IsClass && !(info.PropertyType == typeof(Texture) || info.PropertyType == typeof(Texture2D))) || (info.PropertyType.IsValueType && !info.PropertyType.IsEnum))
-                {
-                    info.SetValue(item, ParseObject(data, info.PropertyType), null);
-                }
-                if (TryGetFiltered(KS3PUtil.Prepare(info.Name), data, out filtered))
-                {
-                    if (TryParse(filtered, info.PropertyType, out parsed))
-                    {
-                        info.SetValue(item, parsed, null);
-                    }
-                }
-            }
-            return item;
-        }
-
-        public static T ParseObject<T>(ConfigNode data)
-        {
-            return (T)ParseObject(data, typeof(T));
-        }
-    }
-    */
-
     /// <summary>
     /// The base class for all PostProcessingModel parsers
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public abstract class Parser<T>
+    internal abstract class Parser<T> where T : PostProcessingModel
     {
         protected void Warning(string message)
         {
-            KS3P.Error("[" + nameof(T) + "]: message");
+            KS3P.Error("[" + nameof(T) + "]: " + message);
         }
         protected void Exception(string message, Exception exception)
         {
             KS3P.Exception("[" + nameof(T) + "]: Exception caught while parsing!", exception);
         }
-        protected virtual T Default()
-        {
-            return default(T);
-        }
+        protected abstract T Default();
         protected virtual T Parse(ConfigNode.ValueList values) { return Default(); }
-        public virtual T Parse(ConfigNode node)
+        internal virtual T Parse(ConfigNode node)
         {
             if(node == null)
             {
@@ -280,7 +32,7 @@ namespace KSP_PostProcessing.Parsers
                 return Parse(node.values);
             }
         }
-        public bool TryParseEnum<E>(string enumString, out E parsed) where E : struct
+        internal bool TryParseEnum<E>(string enumString, out E parsed) where E : struct
         {
             if(string.IsNullOrEmpty(enumString))
             {
@@ -355,7 +107,7 @@ namespace KSP_PostProcessing.Parsers
             float[] data = { 0f, 0f, 0f };
             char[] separator = { ',' };
 
-            string[] snippets = target.Split(separator, 3);
+            string[] snippets = target.TrimStart(' ', '(').TrimEnd(' ', ')').Split(separator, 3);
             float parsed = 0f;
             for(int i = 0; i < snippets.Length; i++)
             {
@@ -382,29 +134,17 @@ namespace KSP_PostProcessing.Parsers
                 float[] data = { 0f, 0f, 0f, 1f };
                 char[] separator = { ',' };
 
-                string[] snippets = target.Split(separator, 3);
+                string[] snippets = target.TrimRGBA().Split(separator, 4);
                 float parsed = 0f;
 
-                if (target.StartsWith("RGBA"))
+                for (int i = 0; i < snippets.Length; i++)
                 {
-                    for (int i = 0; i < snippets.Length; i++)
+                    if (float.TryParse(snippets[i], out parsed))
                     {
-                        if (float.TryParse(snippets[i], out parsed))
-                        {
-                            data[i] = parsed / 255f;
-                        }
+                        data[i] = parsed;
                     }
                 }
-                else
-                {
-                    for (int i = 0; i < snippets.Length; i++)
-                    {
-                        if (float.TryParse(snippets[i], out parsed))
-                        {
-                            data[i] = parsed;
-                        }
-                    }
-                }
+
                 return new Color(data[0], data[1], data[2], data[3]);
             }
         }
@@ -414,20 +154,18 @@ namespace KSP_PostProcessing.Parsers
             if(node == null)
             {
                 curve = null;
-                return false;
             }
             else
             {
                 curve = ParseCurve(node);
-                return true;
             }
+            return (curve != null);
         }
 
         protected ColorGradingCurve ParseCurve(ConfigNode node)
         {
             float zero = 0f;
             bool loop = false;
-            Vector2 bounds = Vector2.zero;
             AnimationCurve curve = new AnimationCurve();
             foreach(ConfigNode.Value value in node.values)
             {
@@ -449,22 +187,26 @@ namespace KSP_PostProcessing.Parsers
                         loop = false;
                     }
                 }
-                else if(KS3PUtil.Prepare(value.name) == "bounds")
-                {
-                    bounds = ParseVector2(value.value);
-                }
             }
-            return new ColorGradingCurve(curve, zero, loop, bounds);
+
+            Vector2 cBounds = curve.GetBounds();
+            if (cBounds.IsZero()) {
+                return null;
+            } else {
+                return new ColorGradingCurve(curve, zero, loop, cBounds);
+            }
         }
+
+        internal abstract void ToFile(List<string> lines, T item);
     }
 
     /// <summary>
     /// A slight addition to the base Parser class that contains an out parameter for returning the strings assigned to texture paths.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public abstract class TextureParser<T> : Parser<T>
+    internal abstract class TextureParser<T> : Parser<T> where T : PostProcessingModel
     {
-        public virtual T Parse(ConfigNode node, out string path)
+        internal virtual T Parse(ConfigNode node, out string path)
         {
             if (node == null)
             {
@@ -483,9 +225,9 @@ namespace KSP_PostProcessing.Parsers
         }
     }
 
-    public static class MiscParser
+    internal static class MiscParser
     {
-        public static bool TryParseEnum<E>(string enumString, out E parsed) where E : struct
+        internal static bool TryParseEnum<E>(string enumString, out E parsed) where E : struct
         {
             if (string.IsNullOrEmpty(enumString))
             {
@@ -498,15 +240,15 @@ namespace KSP_PostProcessing.Parsers
                 parsed = (E)Enum.Parse(typeof(E), enumString);
                 return true;
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                KS3P.Exception("Exception caught parsing enumerator [" + nameof(E) + "]", e);
+                //KS3P.Exception("Exception caught parsing enumerator [" + nameof(E) + "]", e);
                 parsed = default(E);
                 return false;
             }
         }
 
-        public static BitArray ParseSceneList(string input)
+        internal static BitArray ParseSceneList(string input)
         {
             char[] separator = { ',' };
             string[] parts = input.Split(separator);
@@ -553,7 +295,7 @@ namespace KSP_PostProcessing.Parsers
         }
     }
     
-    public sealed class AntiAliasingParser : Parser<AntialiasingModel>
+    internal sealed class AntiAliasingParser : Parser<AntialiasingModel>
     {
         protected override AntialiasingModel Default()
         {
@@ -636,9 +378,42 @@ namespace KSP_PostProcessing.Parsers
                 settings = settings
             };
         }
+
+        internal override void ToFile(List<string> lines, AntialiasingModel item)
+        {
+            lines.AddIndented("Anti_Aliasing");
+            lines.AddIndented(true);
+            // unpack here, so we can abuse how classes are passed to methods and how structs are stored in memory.
+            var settings = item.settings;
+            var defaultSettings = AntialiasingModel.Settings.defaultSettings;
+            lines.AddIndented("method", settings.method, defaultSettings.method);
+            switch(settings.method)
+            {
+                case AntialiasingModel.Method.Fxaa:
+                    lines.AddIndented("fxaa_preset", settings.fxaaSettings.preset, defaultSettings.fxaaSettings.preset);
+                    lines.AddIndented("enabled", item.enabled, true);
+                    break;
+
+                case AntialiasingModel.Method.Taa:
+                    var taa = settings.taaSettings;
+                    var defTaa = defaultSettings.taaSettings;
+                    lines.AddIndented("jitter_spread", taa.jitterSpread, defTaa.jitterSpread);
+                    lines.AddIndented("sharpen", taa.sharpen, defTaa.sharpen);
+                    lines.AddIndented("motion_blending", taa.motionBlending, defTaa.motionBlending);
+                    lines.AddIndented("stationary_blending", taa.stationaryBlending, defTaa.stationaryBlending);
+                    lines.AddIndented("enabled", item.enabled, true);
+                    break;
+
+                default:
+                    lines.AddIndented("enabled = false");
+                    break;
+            }
+
+            lines.AddIndented(false);
+        }
     }
 
-    public sealed class AmbientOcclusionParser : Parser<AmbientOcclusionModel>
+    internal sealed class AmbientOcclusionParser : Parser<AmbientOcclusionModel>
     {
         protected override AmbientOcclusionModel Default()
         {
@@ -710,9 +485,28 @@ namespace KSP_PostProcessing.Parsers
                 settings = settings
             };
         }
+        
+        internal override void ToFile(List<string> lines, AmbientOcclusionModel item)
+        {
+            lines.AddIndented("Ambient_Occlusion");
+            lines.AddIndented(true);
+
+            var settings = item.settings;
+            var defSet = AmbientOcclusionModel.Settings.defaultSettings;
+            lines.AddIndented("ambient_only", settings.ambientOnly, defSet.ambientOnly);
+            lines.AddIndented("downsampling", settings.downsampling, defSet.downsampling);
+            lines.AddIndented("force_forward_compatibility", settings.forceForwardCompatibility, defSet.forceForwardCompatibility);
+            lines.AddIndented("high_precision", settings.highPrecision, defSet.highPrecision);
+            lines.AddIndented("intensity", settings.intensity, defSet.intensity);
+            lines.AddIndented("radius", settings.radius, defSet.radius);
+            lines.AddIndented("sample_count", settings.sampleCount, defSet.sampleCount);
+            lines.AddIndented("enabled", item.enabled, true);
+
+            lines.AddIndented(false);
+        }
     }
 
-    public sealed class DepthOfFieldParser : Parser<DepthOfFieldModel>
+    internal sealed class DepthOfFieldParser : Parser<DepthOfFieldModel>
     {
         protected override DepthOfFieldModel Default()
         {
@@ -776,9 +570,26 @@ namespace KSP_PostProcessing.Parsers
                 settings = settings
             };
         }
+
+        internal override void ToFile(List<string> lines, DepthOfFieldModel item)
+        {
+            lines.AddIndented("Depth_Of_Field");
+            lines.AddIndented(true);
+
+            var settings = item.settings;
+            var def = DepthOfFieldModel.Settings.defaultSettings;
+            lines.AddIndented("aperture", settings.aperture, def.aperture);
+            lines.AddIndented("focal_length", settings.focalLength, def.focalLength);
+            lines.AddIndented("focus_distance", settings.focusDistance, def.focusDistance);
+            lines.AddIndented("kernel_size", settings.kernelSize, def.kernelSize);
+            lines.AddIndented("use_camera_fov", settings.useCameraFov, def.useCameraFov);
+            lines.AddIndented("enabled", item.enabled, true);
+
+            lines.AddIndented(false);
+        }
     }
 
-    public sealed class MotionBlurParser : Parser<MotionBlurModel>
+    internal sealed class MotionBlurParser : Parser<MotionBlurModel>
     {
         protected override MotionBlurModel Default()
         {
@@ -829,9 +640,24 @@ namespace KSP_PostProcessing.Parsers
                 settings = settings
             };
         }
+
+        internal override void ToFile(List<string> lines, MotionBlurModel item)
+        {
+            lines.AddIndented("Motion_Blur");
+            lines.AddIndented(true);
+
+            var settings = item.settings;
+            var def = MotionBlurModel.Settings.defaultSettings;
+            lines.AddIndented("frame_blending", settings.frameBlending, def.frameBlending);
+            lines.AddIndented("sample_count", settings.sampleCount, def.sampleCount);
+            lines.AddIndented("shutter_angle", settings.shutterAngle, def.shutterAngle);
+            lines.AddIndented("enabled", item.enabled, true);
+
+            lines.AddIndented(false);
+        }
     }
 
-    public sealed class EyeAdaptationParser : Parser<EyeAdaptationModel>
+    internal sealed class EyeAdaptationParser : Parser<EyeAdaptationModel>
     {
         protected override EyeAdaptationModel Default()
         {
@@ -923,9 +749,33 @@ namespace KSP_PostProcessing.Parsers
                 settings = settings
             };
         }
+
+        internal override void ToFile(List<string> lines, EyeAdaptationModel item)
+        {
+            lines.AddIndented("Eye_Adaptation");
+            lines.AddIndented(true);
+
+            var settings = item.settings;
+            var def = EyeAdaptationModel.Settings.defaultSettings;
+
+            lines.AddIndented("adaptation_type", settings.adaptationType, def.adaptationType);
+            lines.AddIndented("dynamic_key_value", settings.dynamicKeyValue, def.dynamicKeyValue);
+            lines.AddIndented("high_percent", settings.highPercent, def.highPercent);
+            lines.AddIndented("key_value", settings.keyValue, def.keyValue);
+            lines.AddIndented("log_max", settings.logMax, def.logMax);
+            lines.AddIndented("log_min", settings.logMin, def.logMin);
+            lines.AddIndented("low_percent", settings.lowPercent, def.lowPercent);
+            lines.AddIndented("max_luminance", settings.maxLuminance, def.maxLuminance);
+            lines.AddIndented("min_luminance", settings.minLuminance, def.minLuminance);
+            lines.AddIndented("speed_down", settings.speedDown, def.speedDown);
+            lines.AddIndented("speed_up", settings.speedUp, def.speedUp);
+            lines.AddIndented("enabled", item.enabled, true);
+
+            lines.AddIndented(false);
+        }
     }
 
-    public sealed class BloomParser : TextureParser<BloomModel>
+    internal sealed class BloomParser : TextureParser<BloomModel>
     {
         protected override BloomModel Default()
         {
@@ -983,21 +833,21 @@ namespace KSP_PostProcessing.Parsers
                             else
                             {
                                 Warning("Failed to load dirt texture path [" + data[1] + "], loading blank fallback texture.");
-                                dirtSettings.texture = database.GetTexture("KS3P/Textures/Fallback.png", false);
-                                path = "KS3P/Textures/Fallback.png";
+                                dirtSettings.texture = database.GetTexture("KS3P/Textures/Fallback", false);
+                                path = "KS3P/Textures/Fallback";
                             }
                         }
                         else
                         {
-                            dirtSettings.texture = GameDatabase.Instance.GetTexture("KS3P/Textures/Fallback.png", false);
-                            path = "KS3P/Textures/Fallback.png";
+                            dirtSettings.texture = GameDatabase.Instance.GetTexture("KS3P/Textures/Fallback", false);
+                            path = "KS3P/Textures/Fallback";
                         }
                     }
                     else
                     {
                         dirtSettings.intensity = 0f; // disable
-                        dirtSettings.texture = GameDatabase.Instance.GetTexture("KS3P/Textures/Fallback.png", false);
-                        path = "KS3P/Textures/Fallback.png";
+                        dirtSettings.texture = GameDatabase.Instance.GetTexture("KS3P/Textures/Fallback", false);
+                        path = "KS3P/Textures/Fallback";
                     }
                 }
                 else
@@ -1024,14 +874,14 @@ namespace KSP_PostProcessing.Parsers
                         else
                         {
                             Warning("Failed to load dirt texture path [" + data[1] + "], loading blank fallback texture.");
-                            dirtSettings.texture = database.GetTexture("KS3P/Textures/Fallback.png", false);
-                            path = "KS3P/Textures/Fallback.png";
+                            dirtSettings.texture = database.GetTexture("KS3P/Textures/Fallback", false);
+                            path = "KS3P/Textures/Fallback";
                         }
                     }
                     else
                     {
-                        dirtSettings.texture = GameDatabase.Instance.GetTexture("KS3P/Textures/Fallback.png", false);
-                        path = "KS3P/Textures/Fallback.png";
+                        dirtSettings.texture = GameDatabase.Instance.GetTexture("KS3P/Textures/Fallback", false);
+                        path = "KS3P/Textures/Fallback";
                     }
                 }
             }
@@ -1059,14 +909,14 @@ namespace KSP_PostProcessing.Parsers
                     else
                     {
                         Warning("Failed to load dirt texture path [" + data[1] + "], loading blank fallback texture.");
-                        dirtSettings.texture = database.GetTexture("KS3P/Textures/Fallback.png", false);
-                        path = "KS3P/Textures/Fallback.png";
+                        dirtSettings.texture = database.GetTexture("KS3P/Textures/Fallback", false);
+                        path = "KS3P/Textures/Fallback";
                     }
                 }
                 else
                 {
-                    dirtSettings.texture = GameDatabase.Instance.GetTexture("KS3P/Textures/Fallback.png", false);
-                    path = "KS3P/Textures/Fallback.png";
+                    dirtSettings.texture = GameDatabase.Instance.GetTexture("KS3P/Textures/Fallback", false);
+                    path = "KS3P/Textures/Fallback";
                 }
             }
 
@@ -1106,9 +956,31 @@ namespace KSP_PostProcessing.Parsers
                 }
             };
         }
+        internal override void ToFile(List<string> lines, BloomModel item)
+        {
+            lines.AddIndented("Bloom");
+            lines.AddIndented(true);
+
+            var settings = item.settings;
+            var def = BloomModel.Settings.defaultSettings;
+
+            var bSet = settings.bloom;
+            var bDef = def.bloom;
+            lines.AddIndented("bloom_anti_flicker", bSet.antiFlicker, bDef.antiFlicker);
+            lines.AddIndented("bloom_intensity", bSet.intensity, bDef.intensity);
+            lines.AddIndented("bloom_radius", bSet.radius, bDef.radius);
+            lines.AddIndented("bloom_soft_knee", bSet.softKnee, bDef.softKnee);
+            lines.AddIndented("bloom_threshold", bSet.threshold, bDef.threshold);
+
+            lines.AddIndented("dirt_intensity", settings.lensDirt.intensity, def.lensDirt.intensity);
+            lines.AddIndented("dirt_texture = " + ConfigWriter.WriteTarget.dirtTex);
+            lines.AddIndented("enabled", item.enabled, true);
+
+            lines.AddIndented(false);
+        }
     }
 
-    public sealed class ColorGradingParser : Parser<ColorGradingModel>
+    internal sealed class ColorGradingParser : Parser<ColorGradingModel>
     {
         protected override ColorGradingModel Default()
         {
@@ -1119,7 +991,7 @@ namespace KSP_PostProcessing.Parsers
             };
         }
 
-        public override ColorGradingModel Parse(ConfigNode node)
+        internal override ColorGradingModel Parse(ConfigNode node)
         {
             if (node == null)
             {
@@ -1457,9 +1329,130 @@ namespace KSP_PostProcessing.Parsers
                 return settings;
             }
         }
+
+        internal override void ToFile(List<string> lines, ColorGradingModel item)
+        {
+            lines.AddIndented("Color_Grading");
+            lines.AddIndented(true);
+
+            var def = ColorGradingModel.Settings.defaultSettings;
+            
+            #region ProcessBasic
+            var basicSettings = item.settings.basic;
+            var basicDef = def.basic;
+
+            lines.AddIndented("Basic");
+            lines.AddIndented(true);
+
+            lines.AddIndented("contrast", basicSettings.contrast, basicDef.contrast);
+            lines.AddIndented("hue_shift", basicSettings.hueShift, basicDef.hueShift);
+            lines.AddIndented("post_exposure", basicSettings.postExposure, basicDef.postExposure);
+            lines.AddIndented("saturation", basicSettings.saturation, basicDef.saturation);
+            lines.AddIndented("temperature", basicSettings.temperature, basicDef.temperature);
+            lines.AddIndented("tint", basicSettings.tint, basicDef.tint);
+
+            lines.AddIndented(false);
+
+            #endregion
+
+            #region ProcessChannelMixer
+            var mixerSettings = item.settings.channelMixer;
+            var mixerDef = def.channelMixer;
+
+            lines.AddIndented("Mixer");
+            lines.AddIndented(true);
+
+            lines.AddIndented("red", mixerSettings.red, mixerDef.red);
+            lines.AddIndented("green", mixerSettings.green, mixerDef.green);
+            lines.AddIndented("blue", mixerSettings.blue, mixerDef.blue);
+
+            lines.AddIndented(false);
+
+            #endregion
+
+            #region ProcessColorWheels
+            var wheelSettings = item.settings.colorWheels;
+            var wheelDef = def.colorWheels;
+
+            lines.AddIndented("Wheels");
+            lines.AddIndented(true);
+            
+            switch(wheelSettings.mode)
+            {
+                case ColorGradingModel.ColorWheelMode.Linear:
+                    lines.AddIndented("mode = Linear");
+                    lines.AddIndented("gain", wheelSettings.linear.gain, wheelDef.linear.gain);
+                    lines.AddIndented("gamma", wheelSettings.linear.gamma, wheelDef.linear.gamma);
+                    lines.AddIndented("lift", wheelSettings.linear.lift, wheelDef.linear.lift);
+                    break;
+                case ColorGradingModel.ColorWheelMode.Log:
+                    lines.AddIndented("mode = Log");
+                    lines.AddIndented("offset", wheelSettings.log.offset, wheelDef.log.offset);
+                    lines.AddIndented("power", wheelSettings.log.power, wheelDef.log.power);
+                    lines.AddIndented("slope", wheelSettings.log.slope, wheelDef.log.slope);
+                    break;
+            }
+
+            lines.AddIndented(false);
+            #endregion
+
+            #region ProcessCurves
+            var curveSettings = item.settings.curves;
+
+            lines.AddIndented("Curves");
+            lines.AddIndented(true);
+
+            WriteCurve(lines, "Master", curveSettings.master);
+            WriteCurve(lines, "Red", curveSettings.red);
+            WriteCurve(lines, "Green", curveSettings.green);
+            WriteCurve(lines, "Blue", curveSettings.blue);
+            WriteCurve(lines, "Hue_Versus_Hue", curveSettings.hueVShue);
+            WriteCurve(lines, "Hue_Versus_Saturation", curveSettings.hueVSsat);
+            WriteCurve(lines, "Luminosity_Versus_Saturation", curveSettings.lumVSsat);
+            WriteCurve(lines, "Saturation_Versus_Saturation", curveSettings.satVSsat);
+
+            lines.AddIndented(false);
+            #endregion
+
+            #region ProcessTonemapping
+            var mapSettings = item.settings.tonemapping;
+            var mapDef = def.tonemapping;
+
+            lines.AddIndented("Tonemapper");
+            lines.AddIndented(true);
+
+            lines.AddIndented("tonemapper", mapSettings.tonemapper, mapDef.tonemapper);
+            lines.AddIndented("black_in", mapSettings.neutralBlackIn, mapDef.neutralBlackIn);
+            lines.AddIndented("white_in", mapSettings.neutralWhiteIn, mapDef.neutralWhiteIn);
+            lines.AddIndented("black_out", mapSettings.neutralBlackOut, mapDef.neutralBlackOut);
+            lines.AddIndented("white_out", mapSettings.neutralWhiteOut, mapDef.neutralWhiteOut);
+            lines.AddIndented("white_level", mapSettings.neutralWhiteLevel, mapDef.neutralWhiteLevel);
+            lines.AddIndented("white_clip", mapSettings.neutralWhiteClip, mapDef.neutralWhiteClip);
+
+            lines.AddIndented(false);
+            #endregion
+
+            lines.AddIndented("enabled", item.enabled, true);
+            lines.AddIndented(false);
+        }
+        const string comma = ", ";
+        void WriteCurve(List<string> lines, string curveName, ColorGradingCurve curve)
+        {
+            lines.AddIndented(curveName);
+            lines.AddIndented(true);
+
+            lines.AddIndented("zero", curve.ZeroValue, 0f);
+            lines.AddIndented("loop", curve.IsLooped, false);
+            foreach(var key in curve.curve.keys)
+            {
+                lines.AddIndented("key = " + key.time + comma + key.value + comma + key.inTangent + comma + key.outTangent);
+            }
+
+            lines.AddIndented(false);
+        }
     }
 
-    public sealed class UserLutParser : TextureParser<UserLutModel>
+    internal sealed class UserLutParser : TextureParser<UserLutModel>
     {
         protected override UserLutModel Default()
         {
@@ -1498,14 +1491,14 @@ namespace KSP_PostProcessing.Parsers
                 else
                 {
                     Warning("Failed to load dirt texture path [" + data[1] + "], loading blank fallback texture.");
-                    settings.lut = database.GetTexture("KS3P/Textures/Fallback.png", false);
-                    path = "KS3P/Textures/Fallback.png";
+                    settings.lut = database.GetTexture("KS3P/Textures/Fallback", false);
+                    path = "KS3P/Textures/Fallback";
                 }
             }
             else
             {
-                settings.lut = database.GetTexture("KS3P/Textures/Fallback.png", false);
-                path = "KS3P/Textures/Fallback.png";
+                settings.lut = database.GetTexture("KS3P/Textures/Fallback", false);
+                path = "KS3P/Textures/Fallback";
             }
             
             if(data[2] == null || !bool.TryParse(data[2], out enabled))
@@ -1519,9 +1512,23 @@ namespace KSP_PostProcessing.Parsers
                 settings = settings
             };
         }
+
+        internal override void ToFile(List<string> lines, UserLutModel item)
+        {
+            lines.AddIndented("User_Lut");
+            lines.AddIndented(true);
+
+            var settings = item.settings.contribution;
+            var defCon = UserLutModel.Settings.defaultSettings.contribution;
+            lines.AddIndented("contribution", settings, defCon);
+            lines.AddIndented("lut = " + ConfigWriter.WriteTarget.lutTex);
+            lines.AddIndented("enabled", item.enabled, true);
+
+            lines.AddIndented(false);
+        }
     }
 
-    public sealed class ChromaticAbberationParser : TextureParser<ChromaticAberrationModel>
+    internal sealed class ChromaticAbberationParser : TextureParser<ChromaticAberrationModel>
     {
         protected override ChromaticAberrationModel Default()
         {
@@ -1559,14 +1566,14 @@ namespace KSP_PostProcessing.Parsers
                 else
                 {
                     Warning("Failed to load spectral texture path [" + data[1] + "], loading blank fallback texture.");
-                    settings.spectralTexture = database.GetTexture("KS3P/Textures/Fallback.png", false);
-                    path = "KS3P/Textures/Fallback.png";
+                    settings.spectralTexture = database.GetTexture("KS3P/Textures/Fallback", false);
+                    path = "KS3P/Textures/Fallback";
                 }
             }
             else
             {
-                settings.spectralTexture = database.GetTexture("KS3P/Textures/Fallback.png", false);
-                path = "KS3P/Textures/Fallback.png";
+                settings.spectralTexture = database.GetTexture("KS3P/Textures/Fallback", false);
+                path = "KS3P/Textures/Fallback";
             }
 
             if (data[2] == null || !bool.TryParse(data[2], out enabled))
@@ -1580,9 +1587,18 @@ namespace KSP_PostProcessing.Parsers
                 settings = settings
             };
         }
+        internal override void ToFile(List<string> lines, ChromaticAberrationModel item)
+        {
+            lines.AddIndented("Chromatic_Abberation");
+            lines.AddIndented(true);
+            lines.AddIndented("intensity", item.settings.intensity, ChromaticAberrationModel.Settings.defaultSettings.intensity);
+            lines.AddIndented("texture = " + ConfigWriter.WriteTarget.chromaticTex);
+            lines.AddIndented("enabled", item.enabled, true);
+            lines.AddIndented(false);
+        }
     }
 
-    public sealed class GrainParser : Parser<GrainModel>
+    internal sealed class GrainParser : Parser<GrainModel>
     {
         protected override GrainModel Default()
         {
@@ -1636,9 +1652,25 @@ namespace KSP_PostProcessing.Parsers
                 settings = settings
             };
         }
+
+        internal override void ToFile(List<string> lines, GrainModel item)
+        {
+            lines.AddIndented("Grain");
+            lines.AddIndented(true);
+
+            var settings = item.settings;
+            var def = GrainModel.Settings.defaultSettings;
+            lines.AddIndented("colored", settings.colored, def.colored);
+            lines.AddIndented("intensity", settings.intensity, def.intensity);
+            lines.AddIndented("luminance_contribution", settings.luminanceContribution, def.luminanceContribution);
+            lines.AddIndented("size", settings.size, def.size);
+            lines.AddIndented("enabled", item.enabled, true);
+
+            lines.AddIndented(false);
+        }
     }
 
-    public sealed class VignetteParser : TextureParser<VignetteModel>
+    internal sealed class VignetteParser : TextureParser<VignetteModel>
     {
         protected override VignetteModel Default()
         {
@@ -1695,14 +1727,14 @@ namespace KSP_PostProcessing.Parsers
                 else
                 {
                     Warning("Failed to load mask texture path [" + data[3] + "], loading blank fallback texture.");
-                    settings.mask = database.GetTexture("KS3P/Textures/Fallback.png", false);
-                    path = "KS3P/Textures/Fallback.png";
+                    settings.mask = database.GetTexture("KS3P/Textures/Fallback", false);
+                    path = "KS3P/Textures/Fallback";
                 }
             }
             else
             {
-                settings.mask = database.GetTexture("KS3P/Textures/Fallback.png", false);
-                path = "KS3P/Textures/Fallback.png";
+                settings.mask = database.GetTexture("KS3P/Textures/Fallback", false);
+                path = "KS3P/Textures/Fallback";
             }
             if(data[4] != null)
             {
@@ -1739,9 +1771,28 @@ namespace KSP_PostProcessing.Parsers
                 settings = settings
             };
         }
+        internal override void ToFile(List<string> lines, VignetteModel item)
+        {
+            lines.AddIndented("Vignette");
+            lines.AddIndented(true);
+
+            var settings = item.settings;
+            var def = VignetteModel.Settings.defaultSettings;
+            lines.AddIndented("center", settings.center, def.center);
+            lines.AddIndented("color", settings.color, def.color);
+            lines.AddIndented("intensity", settings.intensity, def.intensity);
+            lines.AddIndented("mask = " + ConfigWriter.WriteTarget.vignetteMask);
+            lines.AddIndented("mode", settings.mode, def.mode);
+            lines.AddIndented("opacity", settings.opacity, def.opacity);
+            lines.AddIndented("rounded", settings.rounded, def.rounded);
+            lines.AddIndented("roundness", settings.roundness, def.roundness);
+            lines.AddIndented("smoothness", settings.smoothness, def.smoothness);
+            lines.AddIndented("enabled", item.enabled, true);
+            lines.AddIndented(false);
+        }
     }
 
-    public sealed class ScreenSpaceReflectionParser : Parser<ScreenSpaceReflectionModel>
+    internal sealed class ScreenSpaceReflectionParser : Parser<ScreenSpaceReflectionModel>
     {
         protected override ScreenSpaceReflectionModel Default()
         {
@@ -1852,6 +1903,30 @@ namespace KSP_PostProcessing.Parsers
                 settings = settings,
                 enabled = calcBool
             };
+        }
+        internal override void ToFile(List<string> lines, ScreenSpaceReflectionModel item)
+        {
+            lines.AddIndented("Screen_Space_Reflection");
+            lines.AddIndented(true);
+
+            var settings = item.settings;
+            var def = ScreenSpaceReflectionModel.Settings.defaultSettings;
+
+            lines.AddIndented("blend_type", settings.reflection.blendType, def.reflection.blendType);
+            lines.AddIndented("reflection_quality", settings.reflection.reflectionQuality, def.reflection.reflectionQuality);
+            lines.AddIndented("max_distance", settings.reflection.maxDistance, def.reflection.maxDistance);
+            lines.AddIndented("iteration_count", settings.reflection.iterationCount, def.reflection.iterationCount);
+            lines.AddIndented("step_size", settings.reflection.stepSize, def.reflection.stepSize);
+            lines.AddIndented("width_modifier", settings.reflection.widthModifier, def.reflection.widthModifier);
+            lines.AddIndented("reflection_blur", settings.reflection.reflectionBlur, def.reflection.reflectionBlur);
+            lines.AddIndented("reflect_backfaces", settings.reflection.reflectBackfaces, def.reflection.reflectBackfaces);
+            lines.AddIndented("reflection_multiplier", settings.intensity.reflectionMultiplier, def.intensity.reflectionMultiplier);
+            lines.AddIndented("fade_distance", settings.intensity.fadeDistance, def.intensity.fadeDistance);
+            lines.AddIndented("fresnel_fade", settings.intensity.fresnelFade, def.intensity.fresnelFade);
+            lines.AddIndented("fresnel_fade_power", settings.intensity.fresnelFadePower, def.intensity.fresnelFadePower);
+            lines.AddIndented("intensity", settings.screenEdgeMask.intensity, def.screenEdgeMask.intensity);
+            lines.AddIndented("enabled", item.enabled, true);
+            lines.AddIndented(false);
         }
     }
 }
